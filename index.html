@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buldog 8-Bit</title>
+    <style>
+      /* Center the game and give the page a dark arcade-style background */
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #1a1a2e;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* Keep the pixel art crisp instead of blurry when scaled */
+      canvas {
+        image-rendering: pixelated;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Phaser will create the game canvas inside this div -->
+    <div id="game"></div>
+
+    <!-- This loads our game code. type="module" lets us use import statements. -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
