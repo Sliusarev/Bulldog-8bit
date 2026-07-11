@@ -94,12 +94,18 @@ concept above; where they conflict, these win.
 Buldog_8bit/
 ├─ index.html          # Page that hosts the game canvas
 ├─ package.json        # Dependencies and npm scripts
+├─ eslint.config.js    # Lint rules
 ├─ vite.config.js      # (optional) Vite settings — added only if needed
+├─ .github/
+│  └─ workflows/ci.yml # Lint + test + build on every push/PR to main
 ├─ src/
 │  ├─ main.js          # Boots Phaser, holds the game config
 │  ├─ scenes/          # (planned) one file per scene: Boot, Menu, Level1-3, GameOver
 │  ├─ sprites/         # (planned) Buldog and enemy classes
+│  ├─ physics/         # Pure, unit-tested game logic (e.g. player.js + player.test.js)
 │  └─ assets/          # (planned) images, tilemaps, audio
+├─ specs/              # Feature specs (spec-driven workflow); _TEMPLATE.md to start one
+├─ .claude/skills/      # Project-specific Claude Code skills, e.g. story-unit-tests
 └─ CLAUDE.md           # This file
 ```
 
@@ -109,6 +115,46 @@ Buldog_8bit/
 - `npm run dev` — start the local dev server with hot reload.
 - `npm run build` — bundle the game for release into `dist/`.
 - `npm run preview` — preview the built release locally.
+- `npm run lint` — run ESLint.
+- `npm run test` — run the Vitest unit test suite.
+
+## Architecture notes
+
+### Branching & workflow
+- **Trunk-based development.** Work happens on short-lived feature branches
+  (e.g. `phase2-bulldog-art`) opened as a PR into `main`, even as a solo dev —
+  the PR is a review checkpoint (a diff to read before it's permanent) and an
+  easy revert point, not a process gate. No required external reviewers or
+  branch protection rules; that would be more ceremony than a solo hobby
+  project needs.
+- Prefer small, frequent merges over long-lived branches — matches the
+  "small, testable steps" convention below.
+
+### Continuous integration (CI)
+- GitHub Actions runs on every push/PR targeting `main`
+  (`.github/workflows/ci.yml`).
+- Steps: install deps → lint (`npm run lint`) → unit test (`npm run test`) →
+  build (`npm run build`). A red run means don't merge.
+
+### Testing strategy
+- Unit tests (Vitest) cover **pure logic only** — movement/jump rules, score
+  math, collision math — not Phaser rendering or scene lifecycle, which isn't
+  practically unit-testable outside a real browser/canvas.
+- To keep logic testable, pull it out of Phaser's `update()`/`create()`
+  callbacks into plain exported functions (e.g. `src/physics/player.js`), and
+  have the Scene call them. The Scene stays a thin adapter between Phaser and
+  the tested logic — it doesn't itself get unit tests.
+- Each feature spec in `specs/` should get a matching test file once it has
+  testable logic — e.g. `specs/player-physics.md` → `src/physics/player.test.js`.
+- Manual playtesting still decides whether something *feels* right (jump
+  height, walk speed) — tests check the rules, not the feel.
+
+### Code style / linting
+- ESLint (flat config, `eslint.config.js`) catches baseline issues (unused
+  vars, undefined globals, etc.). Run via `npm run lint`; CI fails on lint
+  errors.
+- No enforced formatter (Prettier) yet — keep formatting simple by hand; add
+  one later only if inconsistent formatting actually becomes a problem.
 
 ## Conventions for future work
 

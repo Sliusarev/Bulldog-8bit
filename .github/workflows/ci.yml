@@ -1,0 +1,30 @@
+name: CI
+
+# Run on every push and PR that targets main. Matches the trunk-based
+# workflow in CLAUDE.md: a red run here means don't merge the PR.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` installs exactly what's in package-lock.json — faster and
+      # more reproducible than `npm install` for CI.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run test
+
+      - run: npm run build
