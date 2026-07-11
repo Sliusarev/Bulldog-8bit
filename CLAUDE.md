@@ -74,9 +74,12 @@ concept above; where they conflict, these win.
 - **End-of-level reward animation.** When a level is completed, the bulldog
   jumps up and lands asleep on a **sofa** as the level-complete celebration
   (replaces / dresses up the plain goal flag).
-- **Scoreboard.** At the end, show a high-score board listing nicknames and
-  their scores, sorted high to low. Persist scores locally in the browser
-  (e.g. localStorage) — no server or login needed.
+- **Scoreboard (online).** At the end, show a high-score board listing
+  nicknames and their scores, sorted high to low. Scores are stored **online**
+  in a shared table via a Backend-as-a-Service (recommended: Supabase; Firebase
+  is an alternative), so all players see the same global rankings across
+  devices. A local `localStorage` cache is kept as an offline fallback. Still
+  no account or login required. See `specs/scoreboard.md` for the full spec.
 
 ## Tech setup
 
