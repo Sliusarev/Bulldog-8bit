@@ -2,6 +2,7 @@
 // This file boots up Phaser and shows a blank game canvas.
 
 import Phaser from "phaser";
+import { getWalkVelocityX, canJump, JUMP_VELOCITY } from "./physics/player.js";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -53,31 +54,31 @@ class BootScene extends Phaser.Scene {
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
   }
 
-  // update() runs ~60 times per second. This is where we react to input
-  // and move the player each frame.
+  // update() runs ~60 times per second. This reads Phaser's input/physics
+  // state, hands it to the plain (unit-tested) rules in physics/player.js,
+  // and applies whatever they decide. The rules themselves live outside
+  // Phaser so they can be tested without a browser — see
+  // src/physics/player.test.js.
   update() {
-    // How fast the player walks, in pixels per second.
-    const walkSpeed = 100;
+    // Read the current input state.
+    const leftDown = this.cursors.left.isDown;
+    const rightDown = this.cursors.right.isDown;
 
-    if (this.cursors.left.isDown) {
-      // Left arrow held: move left (negative x velocity).
-      this.player.body.setVelocityX(-walkSpeed);
-    } else if (this.cursors.right.isDown) {
-      // Right arrow held: move right (positive x velocity).
-      this.player.body.setVelocityX(walkSpeed);
-    } else {
-      // No arrow held: stop horizontal movement immediately (no sliding).
-      this.player.body.setVelocityX(0);
-    }
+    // Ask the rule what horizontal velocity that input implies, and apply it.
+    this.player.body.setVelocityX(getWalkVelocityX({ leftDown, rightDown }));
 
     // JustDown is true for exactly one frame — the moment the key is first
     // pressed — so holding spacebar doesn't trigger repeated jumps.
+    const jumpPressed = Phaser.Input.Keyboard.JustDown(this.spaceKey);
+
     // body.blocked.down is true only when the player is resting on
-    // something solid (like the ground), so this also blocks mid-air jumps.
-    if (Phaser.Input.Keyboard.JustDown(this.spaceKey) && this.player.body.blocked.down) {
+    // something solid (like the ground).
+    const isGrounded = this.player.body.blocked.down;
+
+    if (canJump({ jumpPressed, isGrounded })) {
       // Negative y velocity means "upward" in screen coordinates. Gravity
       // (set in the config below) will pull the player back down.
-      this.player.body.setVelocityY(-300);
+      this.player.body.setVelocityY(JUMP_VELOCITY);
     }
   }
 }
