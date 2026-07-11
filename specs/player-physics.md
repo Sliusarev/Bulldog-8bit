@@ -35,16 +35,19 @@ real art or levels exist.**
 - Enemy physics, stomp bounce, moving platforms, pits/death zones (Phase 3+).
 
 ## 4. Acceptance criteria
-All verified working as of this spec (tested 2026-07-11):
+All verified working as of this spec (tested 2026-07-11). Items marked 🧪 are
+also covered by an automated unit test in `src/physics/player.test.js`; the
+rest require a real Phaser/browser environment and stay manual playtest checks
+(see `CLAUDE.md` → Architecture notes → Testing strategy for why).
 
 - [x] Given the scene starts, when nothing is pressed, then the player falls due to
       gravity and comes to rest on top of the ground (doesn't clip through it).
-- [x] Given the player is grounded, when left/right arrow is held, then the player
+- [x] 🧪 Given the player is grounded, when left/right arrow is held, then the player
       moves at a constant walking speed in that direction.
-- [x] Given no arrow is held, then horizontal velocity stops immediately.
-- [x] Given the player is grounded, when spacebar is pressed, then the player jumps
+- [x] 🧪 Given no arrow is held, then horizontal velocity stops immediately.
+- [x] 🧪 Given the player is grounded, when spacebar is pressed, then the player jumps
       upward and gravity brings it back down.
-- [x] Given the player is airborne (mid-jump or mid-fall), when spacebar is pressed,
+- [x] 🧪 Given the player is airborne (mid-jump or mid-fall), when spacebar is pressed,
       then nothing happens (no mid-air/double jump).
 - [x] Given the player reaches a world edge, then it stops at the edge instead of
       leaving the visible screen.
@@ -94,7 +97,9 @@ persisted or loaded at runtime.
     same physics body size (16×16) and behavior described here.
 
 ## 9. Definition of done
-This feature is already done: all Section 4 acceptance criteria pass, verified by
-manual playtest in the browser, no console errors, and committed. This spec exists
-so later features have a documented baseline to build on rather than re-deriving it
-from `src/main.js`.
+This feature is already done: all Section 4 acceptance criteria pass — the 🧪
+items via `npm run test` (see `src/physics/player.test.js`), the rest via
+manual playtest in the browser — no console errors, and committed. This spec
+exists so later features have a documented baseline to build on rather than
+re-deriving it from `src/main.js`. It's also the worked example referenced by
+the `story-unit-tests` skill (`.claude/skills/story-unit-tests/SKILL.md`).
