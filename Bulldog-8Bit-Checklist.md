@@ -34,7 +34,7 @@ Small features (a placeholder square, tuning a jump) don't need a spec — just 
 - [x] Add left/right arrow movement
 - [x] Add jump (spacebar), tuned to feel right
 - [x] Player can't fall through the floor
-- [ ] Commit + push this working version
+- [x] Commit + push this working version
 
 **Done when:** the square runs, jumps, and lands on the ground.
 
