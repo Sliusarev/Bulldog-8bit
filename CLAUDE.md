@@ -7,73 +7,161 @@ picture before writing code.
 
 ## Concept
 
-You play as **Buldog**, a small pixel-art bulldog. The feel is classic NES
-platforming: tight jumps, enemies you defeat by bouncing on them, coins to
-collect, and a flag at the end of each level. Art is chunky 8-bit pixel art with a
-limited retro color palette; music and sound effects are simple chiptune bleeps.
+You play as **Buldog**, a small pixel-art bulldog making his way home across
+town and into his house. The feel is classic NES platforming — tight jumps,
+enemies you defeat by bouncing on them — layered with a few personality-driven
+moves of his own (crawling to sneak past cats, a fart attack, an
+uncontrollable high-speed rush) and simple RPG-lite resources (hearts, energy,
+score). Art is chunky 8-bit pixel art with a limited retro color palette;
+music and sound effects are simple chiptune bleeps.
 
 ## Look and feel
 
 - Internal resolution: 320x240, scaled up 2x, with crisp (non-blurry) pixels.
-- Palette: classic NES sky blue (#5c94fc) background, warm browns and greens for
-  ground, bright accents for coins and the hero.
+- Palette: classic NES sky blue (#5c94fc) daytime background (shifting to
+  sunset/night tones for Levels 2–3), warm browns and greens for ground,
+  bright accents for bones/collectibles and the hero.
 - Physics: Phaser Arcade physics with downward gravity. Simple AABB collisions.
-
-## Core mechanics
-
-- **Move**: left/right arrow keys.
-- **Jump**: up arrow or spacebar. Variable jump height (hold longer = jump higher).
-- **Stomp**: land on an enemy's head to defeat it and bounce.
-- **Take damage**: touching an enemy from the side costs a life; 3 lives total.
-- **Coins**: collectibles that raise the score. 100 coins = 1 extra life.
-- **Goal flag**: reaching the flag at the far right ends the level.
 
 ## The hero — Buldog
 
 - A short, muscular bulldog with an underbite, sized about 16x16 pixels.
-- Animations: idle, run, jump/fall, and a squashed "hurt" frame.
-- Personality: brave, a little grumpy, loves his bone (the collectible theme could
-  be bones instead of coins if desired).
+- Personality (drives animation/audio choices): loves sleeping and snores
+  loudly; farts frequently; brave and fearless; always hungry; can run
+  extremely fast but loses control while doing so; can perform powerful high
+  jumps.
+- Animations needed: idle (with an occasional snore-loop if idle too long),
+  run, jump, crawl, fart-attack, rush (an "out of control" look — wobble/blur),
+  and a squashed "hurt" frame.
+- **Out of scope for now — Fatigue System.** Future idea: heavier-breathing
+  animation/SFX (tongue out, panting) after intense activity. Purely
+  cosmetic, not connected to any gameplay mechanic — don't build until
+  explicitly asked.
 
-## Levels
+## Core mechanics
 
-Three hand-designed levels of rising difficulty. Each ends with a goal flag.
+### Standard movement
+- **Move**: left/right arrow keys.
+- **Jump**: single jump, spacebar.
 
-1. **Backyard Bounce** — a gentle intro. Flat ground, a few floating platforms,
-   slow-walking enemies (call them "Grumbler" beetles). Teaches move, jump, stomp,
-   and coins.
-2. **Sewer Scramble** — underground theme. Gaps to jump, moving platforms, and
-   pipes. Adds a flying enemy and pits you can fall into.
-3. **Rooftop Rush** — a fast, vertical finale. Tall jumps, crumbling platforms,
-   more enemies, and a mini-boss (a big cat) guarding the final flag.
+### Crawl
+- Bulldog lowers his body and crawls (likely a held direction + a key, e.g.
+  down arrow — exact input TBD when this is spec'd).
+- While crawling, **Cats cannot detect the Bulldog** (stealth vs. Cats).
+- Also expected to double as how the player ducks under the Giant Cat boss's
+  fish projectiles (see Boss, below) — same input, two uses.
+
+### Enemy Stomp
+- Landing on top of an enemy neutralizes it (classic Mario rule). Applies to
+  Angry Pomeranian, Cat, and Robot Vacuum Cleaner (vacuum only from above).
+
+### Fart Attack
+- Unlimited use — no Energy cost.
+- Bulldog must turn around before farting; ~1 second activation delay.
+- Neutralizes Cats and Angry Pomeranians within range. **Does not work on the
+  Robot Vacuum Cleaner** (needs a stomp-from-above or Bulldog Rush instead).
+
+### Health & Energy
+- **Health**: 3 HP, shown as hearts.
+- **Damage rule (confirmed):** getting hit by any enemy — including the Giant
+  Cat boss's fish projectiles — costs **1 heart**, and **the current level
+  restarts from the beginning** (the reduced heart count carries over; hearts
+  don't refill on restart). Classic-Mario-style, not an instant "game over"
+  on the first hit.
+- **Game Over**: when hearts reach 0, the run ends.
+- Because every hit already removes the player from danger (via the level
+  restart), there's no invulnerability/i-frame window in this design — see
+  `CHAR-5` in the WBS for why that was cut rather than built.
+- **Energy**: 3 segments, spent on Bulldog Rush and High Jump (see Special
+  Abilities). Only known refill source is the Dog Toy pickup — no passive
+  regen is specified, treat that as the rule unless told otherwise.
+
+## Special Abilities
+
+### Bulldog Rush — Cost: 3 Energy
+- Launches Bulldog into an uncontrolled high-speed sprint.
+- Destroys all enemies in his path; difficult to steer during activation.
+- Useful against large groups of enemies. Unlocked partway through Level 2.
+
+### High Jump — Cost: 1 Energy
+- Reaches hidden areas; used to collect bonus rewards and secret collectibles.
+- Distinct from any future "variable jump height" tuning on the standard
+  jump (holding jump longer) — that's a separate, still-unbuilt idea, not
+  this ability.
+
+## Collectibles
+
+> Note: the original design notes used "XP" for what turns out to mean HP
+> (hearts) — a translation artifact, not a separate experience-point system.
+> Written here as HP throughout.
+
+- **Small Bone** — increases Score.
+- **Large Bone** — worth double a Small Bone's score, and heals **+1 HP**
+  (one heart), capped at the starting max of 3 — assumption, flag if Large
+  Bone should be able to grant a bonus heart beyond 3.
+- **Dog Toy** — grants +1 Energy.
+- **Avocado** — a hazard pickup: **-0.5 HP**. Eating 2 Avocados costs a full
+  heart. Assumption: this quietly reduces HP without triggering the
+  level-restart rule (that's specifically for enemy/boss contact) — flag if
+  Avocado damage should restart the level too.
 
 ## Enemies
 
-- **Grumbler** — walks back and forth on platforms; defeated by a stomp.
-- **Flapper** — flies in a wave pattern; defeated by a stomp.
-- **Big Cat (boss)** — appears in level 3; takes multiple stomps to defeat.
+- **Angry Pomeranian** — patrols a designated area. Contact costs 1 heart and
+  restarts the level. Defeated by: Enemy Stomp, Fart Attack, or Bulldog Rush.
+- **Cat** — moves in short jumps with a brief pause between hops; can appear
+  on platforms, ground level, or elevated positions. Contact costs 1 heart
+  and restarts the level. Defeated by: Enemy Stomp, Fart Attack, or Bulldog
+  Rush. Cannot detect the Bulldog while he's crawling.
+- **Robot Vacuum Cleaner** — moves quickly through the house, detects and
+  chases the Bulldog. Contact costs 1 heart and restarts the level. Defeated
+  only by: Enemy Stomp from above, or Bulldog Rush (**not** Fart Attack).
+
+### Boss — Giant Cat (end of Level 3)
+- Throws fish projectiles and patrols a large area.
+- Player strategy: duck/crawl under fish projectiles, approach carefully,
+  use Fart Attack and Bulldog Rush to whittle down its health.
+- **Boss health**: 6 segments. Damage: Bulldog Rush = 2 segments, Fart Attack
+  = 1 segment (stomp isn't listed as a valid boss-damage method).
+- Getting hit by a fish projectile follows the same rule as regular enemies:
+  **-1 heart and Level 3 restarts from the beginning** (confirmed — same rule
+  everywhere, no special-cased boss damage).
+
+## Locations & Levels
+
+Two locations: **Street** (Levels 1–2) and **House** (Level 3). Rising
+difficulty across 3 levels, each with its own narrative ending rather than a
+repeated generic reward.
+
+1. **Level 1 — The Walk** (Street, daytime)
+   - Enemies: Angry Pomeranians, Cats.
+   - Collectibles: 2 Energy pickups; 2 High Jump secret locations, each
+     containing bonus bones.
+   - Ending: Bulldog reaches a water bowl and drinks.
+2. **Level 2 — The Journey Home** (Street, sunset)
+   - Enemies: Angry Pomeranians, Cats.
+   - New mechanic unlocked here: **Bulldog Rush**.
+   - Collectibles: 3 Energy pickups, plus 2 more near the finish; 2 High
+     Jump secret locations; 1 Large Bone.
+   - Challenge: large groups of Cats and Angry Pomeranians near the end.
+   - Ending: Bulldog drinks water and enters the house.
+3. **Level 3 — Home Sweet Home** (House, night)
+   - Enemies: Robot Vacuum Cleaners, and Cat + Vacuum combinations.
+   - Boss: Giant Cat.
+   - Final scene: Bulldog defeats the Giant Cat, walks to the bedroom, climbs
+     into bed beside his humans, falls asleep and starts snoring. **End
+     credits roll.**
 
 ## Product ideas / feature backlog
 
-These are confirmed design decisions to build toward. They refine the generic
-concept above; where they conflict, these win.
+Meta/UI features not covered by the game-design spec above — still planned,
+unaffected by it:
 
-- **Collectibles are bones, not coins.** During each level the bulldog grabs
-  small bones scattered around. Bones raise the score (and can still grant an
-  extra life at a milestone, e.g. 100 bones).
-- **Enemies are cats and chihuahuas.** Replace the generic "Grumbler"/"Flapper"
-  with: a **Cat** (walks/patrols, defeated by a stomp) and a **Chihuahua**
-  (small, fast, yappy; defeated by a stomp). Both cost a life on side contact.
-- **Level 3 boss — Big Cat.** Level 3 ends with a boss fight against a large
-  cat that takes multiple stomps to defeat before the goal is reached.
 - **Bulldog color select on start.** Before playing, the player picks the
   bulldog's color: **white, black, or red.** Chosen color is used for the
   hero sprite throughout (tint the sprite or swap sprite sheets per color).
 - **Arcade-style nickname entry.** On the start screen the player types a short
   nickname (like a classic arcade cabinet). No account or login is required.
-- **End-of-level reward animation.** When a level is completed, the bulldog
-  jumps up and lands asleep on a **sofa** as the level-complete celebration
-  (replaces / dresses up the plain goal flag).
 - **Scoreboard (online).** At the end, show a high-score board listing
   nicknames and their scores, sorted high to low. Scores are stored **online**
   in a shared table via a Backend-as-a-Service (recommended: Supabase; Firebase
@@ -165,10 +253,16 @@ Buldog_8bit/
 
 ## Roadmap (suggested build order)
 
+See `Bulldog-8Bit-WBS.md` for the full Epic/Feature breakdown — this is just
+a rough suggested order, not the source of truth.
+
 1. Blank canvas running in the browser. ✅ (done)
-2. Draw a placeholder ground and the Buldog sprite; make him move and jump.
-3. Add coins and a score counter.
-4. Add the Grumbler enemy and stomp mechanic.
-5. Build Level 1 as a tilemap; add the goal flag and level-complete flow.
-6. Add Levels 2 and 3, new enemies, and the Big Cat boss.
-7. Add a title screen, lives/HUD, sound effects, and music.
+2. Placeholder ground and player rectangle; move and jump. ✅ (done)
+3. Add Small/Large Bone collectibles and a score counter.
+4. Add the Angry Pomeranian and Cat enemies, and the stomp mechanic.
+5. Add Crawl, Fart Attack, and the Health/Energy resource system.
+6. Build Level 1 ("The Walk") end-to-end, including its water-bowl ending.
+7. Add Bulldog Rush and Dog Toy/Avocado pickups; build Level 2 ("The Journey Home").
+8. Add the Robot Vacuum Cleaner, Level 3 ("Home Sweet Home"), and the Giant Cat boss.
+9. Add the title screen, nickname entry, color select, HUD, sound effects, and music.
+10. Add the online scoreboard.
