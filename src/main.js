@@ -3,6 +3,7 @@
 
 import Phaser from "phaser";
 import { getWalkVelocityX, canJump, JUMP_VELOCITY } from "./physics/player.js";
+import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -29,9 +30,15 @@ class BootScene extends Phaser.Scene {
     // won't be affected by gravity, which is exactly what solid ground needs.
     this.physics.add.existing(ground, true);
 
-    // Draw a red rectangle to stand in for Buldog (16x16, per the design doc)
-    // starting a bit above the ground so he visibly falls into place.
-    this.player = this.add.rectangle(160, 180, 16, 16, 0xcc3333);
+    // Draw a 16x16 rectangle to stand in for Buldog (per the design doc),
+    // starting a bit above the ground so he visibly falls into place. Its
+    // color comes from the color-select rules so we can build/test that
+    // feature before real art exists (see specs/color-select.md).
+    // NOTE: the placeholder is a rectangle, so we set its `fillColor`. Once the
+    // real animated sprite replaces it (Phase 2 art), swap this for
+    // `sprite.setTint(colorToTint(this.currentColor))` — same hex, one line.
+    this.currentColor = DEFAULT_COLOR;
+    this.player = this.add.rectangle(160, 180, 16, 16, colorToTint(this.currentColor));
 
     // Turn the player into a physics body too. No second argument means it's
     // a DYNAMIC body: gravity pulls it down and it can move via velocity.
@@ -52,6 +59,13 @@ class BootScene extends Phaser.Scene {
     // Separately track the spacebar, since we're using it (not up-arrow)
     // for jumping.
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+    // TEMPORARY dev key: press C to cycle the bulldog's color
+    // (white -> black -> red). This proves the color-select feature works
+    // before the real title screen exists; the title screen (UI-2) will drive
+    // the same nextColor()/colorToTint() rules later, and this key gets
+    // removed then. C doesn't clash with the arrows or spacebar.
+    this.colorKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
   }
 
   // update() runs ~60 times per second. This reads Phaser's input/physics
@@ -60,6 +74,14 @@ class BootScene extends Phaser.Scene {
   // Phaser so they can be tested without a browser — see
   // src/physics/player.test.js.
   update() {
+    // Cycle the bulldog's color when C is JUST pressed (JustDown is true for
+    // one frame only, so holding C doesn't strobe through colors). We re-apply
+    // the placeholder's fillColor; with the real sprite this becomes setTint().
+    if (Phaser.Input.Keyboard.JustDown(this.colorKey)) {
+      this.currentColor = nextColor(this.currentColor);
+      this.player.setFillStyle(colorToTint(this.currentColor));
+    }
+
     // Read the current input state.
     const leftDown = this.cursors.left.isDown;
     const rightDown = this.cursors.right.isDown;
