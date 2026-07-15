@@ -3,7 +3,9 @@
 
 import Phaser from "phaser";
 import { getWalkVelocityX, canJump, JUMP_VELOCITY } from "./physics/player.js";
+import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
+import buldogSheet from "./assets/buldog.png";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -12,8 +14,12 @@ class BootScene extends Phaser.Scene {
     super("BootScene");
   }
 
-  // preload() runs first and is where we'll load images and sounds later.
-  preload() {}
+  // preload() runs first and is where we load images and sounds. The bulldog
+  // spritesheet is a 3-row x 11-col grid of 32x32 cells (idle/run/jump rows
+  // extracted from the source art — see specs/character-sprite.md §5).
+  preload() {
+    this.load.spritesheet("buldog", buldogSheet, { frameWidth: 32, frameHeight: 32 });
+  }
 
   // create() runs once when the scene starts. This is where we build the
   // placeholder ground and player so we can test movement and jumping
@@ -30,19 +36,34 @@ class BootScene extends Phaser.Scene {
     // won't be affected by gravity, which is exactly what solid ground needs.
     this.physics.add.existing(ground, true);
 
-    // Draw a 16x16 rectangle to stand in for Buldog (per the design doc),
-    // starting a bit above the ground so he visibly falls into place. Its
-    // color comes from the color-select rules so we can build/test that
-    // feature before real art exists (see specs/color-select.md).
-    // NOTE: the placeholder is a rectangle, so we set its `fillColor`. Once the
-    // real animated sprite replaces it (Phase 2 art), swap this for
-    // `sprite.setTint(colorToTint(this.currentColor))` — same hex, one line.
-    this.currentColor = DEFAULT_COLOR;
-    this.player = this.add.rectangle(160, 180, 16, 16, colorToTint(this.currentColor));
+    // Define the three Alpha animations (idle/run/jump) from the frame ranges
+    // in src/physics/animation.js, so the frame numbers live in one place.
+    Object.values(ANIMATIONS).forEach(({ key, start, end, frameRate }) => {
+      this.anims.create({
+        key,
+        frames: this.anims.generateFrameNumbers("buldog", { start, end }),
+        frameRate,
+        repeat: -1,
+      });
+    });
 
-    // Turn the player into a physics body too. No second argument means it's
-    // a DYNAMIC body: gravity pulls it down and it can move via velocity.
-    this.physics.add.existing(this.player);
+    // The real animated bulldog sprite (see specs/character-sprite.md),
+    // starting a bit above the ground so he visibly falls into place. Drawn
+    // at its native 32x32 size (no setScale) — a bit bigger than the 16x16
+    // physics body it sits on, same "visual overhang beyond the hitbox" most
+    // platformers use (deliberately NOT trying to make the sprite's display
+    // size exactly match the body: combining setScale with a custom body
+    // size confuses Arcade Physics's offset math, which assumes scale 1).
+    // Color comes from the color-select rules (see specs/color-select.md),
+    // applied as a tint — the same mechanism as the rectangle's fillColor.
+    this.currentColor = DEFAULT_COLOR;
+    this.facing = DEFAULT_FACING;
+    this.player = this.physics.add.sprite(160, 180, "buldog", 0);
+    // Keep the same 16x16 hitbox the placeholder rectangle used
+    // (specs/player-physics.md), centered within the 32x32 sprite frame.
+    this.player.body.setSize(16, 16);
+    this.player.setTint(colorToTint(this.currentColor));
+    this.player.play(ANIMATIONS.idle.key);
 
     // Stop the player from being pushed off the left/right/top/bottom edges
     // of the game world, so he can't run off-screen and get lost.
@@ -66,6 +87,11 @@ class BootScene extends Phaser.Scene {
     // the same nextColor()/colorToTint() rules later, and this key gets
     // removed then. C doesn't clash with the arrows or spacebar.
     this.colorKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
+
+    // Press F to toggle fullscreen (the on-screen button in index.html does
+    // the same thing via game.scale.toggleFullscreen() — this is just the
+    // keyboard-only equivalent, matching NFR-9).
+    this.fullscreenKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
   }
 
   // update() runs ~60 times per second. This reads Phaser's input/physics
@@ -75,11 +101,10 @@ class BootScene extends Phaser.Scene {
   // src/physics/player.test.js.
   update() {
     // Cycle the bulldog's color when C is JUST pressed (JustDown is true for
-    // one frame only, so holding C doesn't strobe through colors). We re-apply
-    // the placeholder's fillColor; with the real sprite this becomes setTint().
+    // one frame only, so holding C doesn't strobe through colors).
     if (Phaser.Input.Keyboard.JustDown(this.colorKey)) {
       this.currentColor = nextColor(this.currentColor);
-      this.player.setFillStyle(colorToTint(this.currentColor));
+      this.player.setTint(colorToTint(this.currentColor));
     }
 
     // Read the current input state.
@@ -87,7 +112,13 @@ class BootScene extends Phaser.Scene {
     const rightDown = this.cursors.right.isDown;
 
     // Ask the rule what horizontal velocity that input implies, and apply it.
-    this.player.body.setVelocityX(getWalkVelocityX({ leftDown, rightDown }));
+    const velocityX = getWalkVelocityX({ leftDown, rightDown });
+    this.player.body.setVelocityX(velocityX);
+
+    // Face the direction of travel, holding the last facing while stopped or
+    // jumping straight up (see specs/character-sprite.md, AC7).
+    this.facing = nextFacing(this.facing, velocityX);
+    this.player.setFlipX(this.facing === "left");
 
     // JustDown is true for exactly one frame — the moment the key is first
     // pressed — so holding spacebar doesn't trigger repeated jumps.
@@ -102,6 +133,16 @@ class BootScene extends Phaser.Scene {
       // (set in the config below) will pull the player back down.
       this.player.body.setVelocityY(JUMP_VELOCITY);
     }
+
+    // Play whichever animation the current state calls for. `play`'s second
+    // argument (ignoreIfPlaying) skips restarting an animation that's already
+    // running, so re-deriving this every frame doesn't glitch/restart loops
+    // or delay transitions (specs/character-sprite.md AC4/AC8).
+    this.player.play(getAnimationKey({ isGrounded, velocityX }), true);
+
+    if (Phaser.Input.Keyboard.JustDown(this.fullscreenKey)) {
+      this.scale.toggleFullscreen();
+    }
   }
 }
 
@@ -114,9 +155,14 @@ const config = {
   backgroundColor: "#5c94fc", // Classic Mario sky blue.
   pixelArt: true,           // Keep pixels sharp, not blurry.
   scale: {
-    mode: Phaser.Scale.FIT,       // Scale the game up to fit the window.
+    mode: Phaser.Scale.FIT,       // Scale the game up to fill #game (see index.html),
+                                  // however big the browser window is — no fixed zoom.
+    // Let Phaser center the canvas. This is the SINGLE centering mechanism —
+    // #game has no flexbox (index.html), on purpose: in fullscreen the canvas
+    // itself becomes the fullscreen element, so a flexbox on #game wouldn't
+    // apply and the canvas would sit left-aligned. Phaser's autoCenter works
+    // in BOTH windowed and fullscreen, so it's the one that handles both.
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    zoom: 2,                      // Draw everything at 2x so it's easier to see.
   },
   physics: {
     default: "arcade",            // Simple, fast physics — perfect for platformers.
@@ -129,4 +175,19 @@ const config = {
 };
 
 // This line actually creates and starts the game.
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
+
+// Wire the HTML fullscreen button (index.html) to Phaser's Scale Manager —
+// the in-game F key (BootScene.update) does the same thing.
+document.getElementById("fullscreen-btn").addEventListener("click", () => {
+  game.scale.toggleFullscreen();
+});
+
+// The browser's fullscreen transition doesn't always finish before Phaser's
+// own resize handling reads the new viewport size, which left the canvas
+// sized/centered for the *old* (pre-fullscreen) dimensions — visible as an
+// off-center canvas with mismatched margins once fullscreen settled. Forcing
+// a refresh once the transition is actually done (this event fires after)
+// makes the Scale Manager re-measure #game and re-fit/re-center correctly.
+game.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, () => game.scale.refresh());
+game.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, () => game.scale.refresh());
