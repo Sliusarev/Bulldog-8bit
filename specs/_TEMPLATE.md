@@ -1,5 +1,9 @@
 # Feature Spec: [Feature Name]
 
+> **Scope:** [Alpha | Beta] — which milestone this feature belongs to (see
+> `CLAUDE.md` → "Project phases: Alpha & Beta"). Delete the option that doesn't apply.
+> **WBS:** [`ID`] — the matching feature ID in `Bulldog-8Bit-WBS.md`.
+
 > **How to use this in a spec-driven flow:**
 > 1. Fill this out *before* writing any code.
 > 2. Give it to Claude Code and ask it to produce a **plan + task list** from the spec — no code yet.

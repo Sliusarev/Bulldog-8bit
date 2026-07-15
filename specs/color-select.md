@@ -8,8 +8,9 @@
 > 5. Verify every item in "Acceptance criteria" before marking the feature done.
 > Keep this file as the source of truth. If the code needs to differ, update the spec first.
 
-WBS: `CHAR-4`. Related: `CHAR-2` (bulldog sprite + animations), `UI-2`
-(nickname entry — shares the future title screen), `UI-1` (title screen).
+**Scope:** `[Alpha]`. WBS: `CHAR-4`. Related: `CHAR-2` (bulldog sprite +
+animations), `UI-2` (nickname entry — shares the start screen), `UI-1` (start
+screen).
 
 ---
 
