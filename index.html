@@ -5,24 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Buldog 8-Bit</title>
     <style>
-      /* Center the game and give the page a dark arcade-style background */
+      /* Give the page a dark arcade-style background and let #game fill the
+         browser window — Phaser's Scale.FIT mode scales the 320x240 canvas
+         up to fill whatever size #game actually is, so #game needs a real
+         size (not just "shrink to fit the canvas") for that to do anything. */
       html, body {
         margin: 0;
         height: 100%;
         background: #1a1a2e;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      }
+      #game {
+        width: 100vw;
+        height: 100vh;
       }
       /* Keep the pixel art crisp instead of blurry when scaled */
       canvas {
         image-rendering: pixelated;
+      }
+      /* Small fullscreen toggle, arcade-cabinet-footer style */
+      #fullscreen-btn {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        font-family: monospace;
+        font-size: 12px;
+        color: #dfe6ff;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid #dfe6ff;
+        border-radius: 4px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      #fullscreen-btn:hover {
+        background: rgba(0, 0, 0, 0.55);
       }
     </style>
   </head>
   <body>
     <!-- Phaser will create the game canvas inside this div -->
     <div id="game"></div>
+
+    <!-- Fullscreen toggle (also bound to the F key in-game, see main.js) -->
+    <button id="fullscreen-btn" type="button">[ ] FULL SCREEN</button>
 
     <!-- This loads our game code. type="module" lets us use import statements. -->
     <script type="module" src="/src/main.js"></script>

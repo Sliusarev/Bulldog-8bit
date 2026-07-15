@@ -2,23 +2,33 @@
 
 A practice-first plan to build a Super Mario–style platformer with a bulldog hero, 3 levels, in the browser — using Claude Code. Written for a PM with no hands-on coding yet. You'll learn the concepts as you hit them, not before.
 
-> **Note (design updated):** the game is now the fuller "Bulldog Adventure"
+> **Note (scope split into Alpha & Beta):** the full "Bulldog Adventure"
 > design — hearts + Energy resources, Crawl / Fart Attack / Bulldog Rush /
 > High Jump moves, Angry Pomeranian / Cat / Robot Vacuum enemies, a Giant Cat
-> boss, and three distinct narrative endings. This roadmap is the *learn-by-
-> doing narrative*; `CLAUDE.md` (design) and `Bulldog-8Bit-WBS.md`
-> (requirements) are the source of truth, and `Bulldog-8Bit-Checklist.md` is
-> the detailed build tracker.
+> boss, and three distinct narrative endings — is now the **Beta** target. It
+> ships **after** a smaller **Alpha** slice: one level with run / jump / **double
+> jump** / turn, a start screen (nickname + color), Small Bones for score, a
+> level timer, one simple stompable enemy, 3 hearts, and a goal marker that opens
+> a simple results window. **Pause menu and the online scoreboard are cut from
+> Alpha.** This roadmap is the *learn-by-doing narrative*; `CLAUDE.md` (design,
+> see "Project phases: Alpha & Beta") and `Bulldog-8Bit-WBS.md` (requirements,
+> `[Alpha]`/`[Beta]` tagged) are the source of truth, and
+> `Bulldog-8Bit-Checklist.md` is the detailed build tracker.
 
 ---
 
 ## What you're building (the vision, made concrete)
 
-- **Type:** 2D side-scrolling platformer (run, jump, avoid enemies, reach the flag).
+- **Type:** 2D side-scrolling platformer (run, jump, avoid enemies, reach the goal).
 - **Hero:** a bulldog that runs, jumps, takes damage.
-- **Levels:** 3 stages of rising difficulty, each ending at a goal.
+- **Levels:** **Alpha** = 1 level proving the core loop; **Beta** = 3 stages of
+  rising difficulty, each ending at a goal.
 - **Style:** 8-bit pixel art (chunky sprites, limited palette, chiptune-ish feel).
 - **Runs:** in any web browser, no install.
+
+> **Two milestones.** Build the **Alpha** slice first (Phases 2–3 below, retitled
+> for Alpha), ship it, then take on **Beta** (Phase 4). Everything is scope-tagged
+> `[Alpha]` / `[Beta]` in the WBS.
 
 ## The tech stack (chosen to be beginner-friendly)
 
@@ -72,7 +82,9 @@ Steps:
 
 ---
 
-## Phase 2 — Make the bulldog (custom pixel art)
+## Phase 2 — Make the bulldog (custom pixel art) · `[Alpha]`
+
+*First step of the Alpha slice.*
 
 Goal: replace the placeholder with your real 8-bit bulldog. You chose custom art — here's the practical path.
 
@@ -106,43 +118,52 @@ Then wire it in — **Prompt:**
 
 ---
 
-## Phase 3 — Build Level 1 end-to-end (the biggest learning jump)
+## Phase 3 — Build the Alpha slice end-to-end (the biggest learning jump) · `[Alpha]`
 
-Goal: a complete, winnable **Level 1 — "The Walk"** (Street, daytime) with platforms, bones, two enemy types, the Health/Energy system, Crawl + Fart Attack, and the water-bowl ending.
+Goal: one complete, winnable level that proves the core loop — the **Alpha
+milestone**. This is a *trimmed* level, not the full "The Walk": platforms,
+Small Bones, **one** simple stompable enemy, 3 hearts, a level timer, a start
+screen (nickname + color), and a goal marker that opens a results window.
 
-Concepts: **tilemaps** (levels built from a grid of tiles), **enemies & simple AI**, **collectibles**, **resource systems** (HP/Energy), **win/lose conditions**.
+Concepts: **tilemaps** (levels built from a grid of tiles), **enemies & simple AI**, **collectibles**, **a simple resource system** (HP), **win/lose conditions**, **UI screens**.
 
 Steps:
-1. Design the level layout. Easiest method: use **Tiled** (free map editor, mapeditor.org) to paint a level, or start with a simple hardcoded platform layout and graduate to Tiled.
-2. Add **Small/Large Bones** to collect (score counter). Large Bone is worth double and heals +1 HP (capped at 3).
-3. Add patrolling enemies — an **Angry Pomeranian** (patrol) and a **Cat** (short hops with pauses). Defeat them by landing on top (stomp) or Fart Attack. *(Chihuahua was cut from the design.)*
-4. Add the **Health & Energy system**: 3 HP hearts, 3 Energy segments in a HUD. **Damage rule:** any enemy contact costs 1 heart and **restarts the level from the beginning** (hearts carry over, don't refill); 0 hearts = Game Over. No i-frames.
-5. Add **Crawl** (Cats can't detect you while crawling) and the **Fart Attack** (turn around, ~1s delay, neutralizes Cats/Pomeranians).
-6. Add the **level ending**: the bulldog reaches a **water bowl and drinks** (replaces the old sofa/flag ending; each level now has its own narrative ending).
+1. Add **double jump** — one extra mid-air jump (a stand-in to test the future High Jump feel). Amend `specs/player-physics.md` first.
+2. Design the level layout. Easiest: a simple hardcoded platform layout, or use **Tiled** (mapeditor.org).
+3. Add **Small Bones** to collect — score is simply the **count of bones** collected.
+4. Add **one simple enemy** that patrols and is defeated **only by a stomp from above** (with a small bounce). Side contact hurts you (next step). *(Fart Attack, Crawl, and extra enemies are Beta.)*
+5. Add the **Health system**: 3 HP hearts in a HUD. **Damage rule (confirmed):** any enemy contact costs 1 heart and **restarts the level from the beginning** (hearts carry over, don't refill); no i-frames; 0 hearts = Game Over.
+6. Add the **level timer** (elapsed time) to the HUD alongside the bone count.
+7. Add a minimal **start screen**: type a **nickname** and pick a **bulldog color** (drives the color-select module built in Phase 2), then start.
+8. Add the **level ending**: a plain **goal marker** ends the level and opens a simple **results window** showing nickname, bones collected, and elapsed time (same window on Game Over).
 
 **Prompt:**
-> "Add Small and Large Bone collectibles with a score counter (Large Bone = double score + heal 1 heart, max 3). Add two enemies — a patrolling Angry Pomeranian and a hopping Cat — that cost 1 heart and restart the level on contact, and are defeated by a stomp from above or a Fart Attack. Give the player 3 HP hearts and 3 Energy segments shown in a HUD. End the level when the bulldog reaches a water bowl and drinks. Pull the score/HP/Energy rules into a plain module and unit-test them."
+> "Add Small Bone collectibles where the score is the number of bones collected, plus a level timer shown in a HUD with 3 HP hearts. Add one simple patrolling enemy defeated only by a stomp from above; side contact costs 1 heart and restarts the level from the beginning (no i-frames), and 0 hearts is Game Over. Add a double jump (one extra mid-air jump). End the level at a goal marker that opens a simple window showing the nickname, bones collected, and elapsed time. Pull the bone/HP/timer rules into a plain module and unit-test them."
 
-✅ Done when: you can play Level 1 start to finish — collect bones, stomp/fart the Pomeranian and Cat, lose hearts (level restarts), and finish by drinking at the water bowl.
+✅ Done (Alpha!) when: you can enter a nickname, pick a color, and play the one level start to finish — run, jump, double-jump, collect bones, stomp the enemy, lose hearts (each hit restarts the level), reach the goal — and see the results window with your nickname, bones, and time. Ship it (deploy) before starting Beta.
 
 ---
 
-## Phase 4 — Turn it into a real game (3 levels + polish)
+## Phase 4 — Turn it into the full game (3 levels + polish) · `[Beta]`
 
-Goal: multiple levels, a start screen, lives, and sound.
+Goal (the **Beta milestone**): grow the Alpha slice into the full "Bulldog
+Adventure" — multiple levels, the Energy/abilities system, more enemies, a boss,
+narrative endings, sound, and the online scoreboard. **Expect to re-scope this
+list** — you may trim Beta further before building it.
 
-Concepts: **scenes/state management** (menu → level 1 → 2 → 3 → win screen), **level progression**, **audio**.
+Concepts: **scenes/state management** (menu → level 1 → 2 → 3 → ending), **level progression**, **resource systems** (Energy), **audio**, **online persistence**.
 
 Steps:
-1. Refactor so a level is data-driven — you load Level 2 and 3 by swapping map data, not rewriting code. Ask Claude Code to help you generalize.
-2. Build **Level 2 — "The Journey Home"** (Street, sunset): **Bulldog Rush** (3 Energy) unlocks here, plus **Dog Toy** (+1 Energy) and **Avocado** (−0.5 HP hazard) pickups and large enemy groups. Ends with the bulldog drinking water and entering the house.
-3. Build **Level 3 — "Home Sweet Home"** (House, night): **Robot Vacuum Cleaner** enemies (chase you; only stomp-from-above or Rush defeats them — *not* Fart) and Cat+Vacuum combos.
-4. Add the **Giant Cat boss** at the end of Level 3 — **6 health segments**, throws fish projectiles you crawl under; Bulldog Rush deals 2, Fart Attack deals 1 (no stomp). A fish hit costs 1 heart and restarts Level 3.
-5. Add the **ending scene**: defeat the boss → walk to the bedroom → climb into bed beside the humans → snore → **end credits** (replaces a generic win screen).
-6. Build the **arcade start screen**: player types a **nickname** and picks a **bulldog color** (white / black / red) before playing. No login. Add a **pause menu**.
-7. Add the **online scoreboard** (the full spec already exists at `specs/scoreboard.md`): nicknames + scores in a shared online table (Supabase/Firebase) so rankings are global across devices, with a `localStorage` cache as offline fallback. No login. *(This is now online, not localStorage-only.)*
-8. Make **Score carry across levels**; keep the HP/Energy systems working across the whole run.
-9. Add chiptune music + sound effects (jump, high jump, fart, rush, stomp, hurt, pickups, snore, endings, boss, victory jingle).
+1. Refactor so a level is data-driven — you load Level 2 and 3 by swapping map data, not rewriting code. Add the full scene flow: Title → Level1 → Level2 → Level3 → Ending/Credits.
+2. Add the **Energy system** (3 segments) and the **abilities** it powers: **Bulldog Rush** (3 Energy), **High Jump** (1 Energy — replaces Alpha's stand-in double jump), plus **Crawl** and the **Fart Attack**.
+3. Add the rest of the **collectibles**: **Large Bone** (double score + heal 1 HP), **Dog Toy** (+1 Energy), **Avocado** (−0.5 HP hazard).
+4. Add the rest of the **enemies**: the **Cat** (short hops) and, in the house, the **Robot Vacuum Cleaner** (chases you; only stomp-from-above or Rush — *not* Fart). They reuse the same damage rule already in place from Alpha (hit = 1 heart + level restart).
+5. Build **Level 1 — "The Walk"** (fuller form: Energy pickups, High Jump secrets, water-bowl ending), **Level 2 — "The Journey Home"** (Street, sunset; Rush unlocks; large groups; drink + enter the house), and **Level 3 — "Home Sweet Home"** (House, night; Vacuums + Cat/Vacuum combos).
+6. Add the **Giant Cat boss** at the end of Level 3 — **6 health segments**, throws fish projectiles you crawl under; Bulldog Rush deals 2, Fart Attack deals 1 (no stomp). A fish hit costs 1 heart and restarts Level 3.
+7. Add the **ending scene**: defeat the boss → walk to the bedroom → climb into bed beside the humans → snore → **end credits**.
+8. Grow the meta UI: full arcade **title screen** and a **pause menu**; make **Score carry across levels**.
+9. Add the **online scoreboard** (spec at `specs/scoreboard.md`): nicknames + scores in a shared online table (Supabase/Firebase), `localStorage` cache as offline fallback. No login.
+10. Add chiptune music + sound effects (jump, high jump, fart, rush, stomp, hurt, pickups, snore, endings, boss, victory jingle).
 
 **Prompts (do these one at a time):**
 > "Refactor my single level into a reusable Level scene that loads different tilemaps, so I can add level 2 and 3 by only changing map data. Then add a scene flow: Title → Level1 → Level2 → Level3 → Ending/Credits."
@@ -155,7 +176,7 @@ Steps:
 
 > "Build the online scoreboard from specs/scoreboard.md — submit nickname + score to a shared Supabase table, show it sorted high to low, with a localStorage cache as offline fallback."
 
-✅ Done when: someone can enter a nickname, pick a color, play all 3 levels, beat the Giant Cat, see the ending/credits, and see their score on the global board.
+✅ Done (Beta!) when: someone can enter a nickname, pick a color, play all 3 levels, beat the Giant Cat, see the ending/credits, and see their score on the global board.
 
 ---
 
@@ -211,12 +232,14 @@ You're the PM; treat Claude Code like a strong engineer on your team.
 ## Realistic timeline
 
 Working evenings/weekends, no prior coding:
-- Phase 0–1: weekend 1 (moving character)
-- Phase 2–3: weekends 2–3 (art + one real level)
-- Phase 4: weekends 4–5 (three levels + polish)
-- Phase 5: an evening (deploy)
+- Phase 0–1: weekend 1 (moving character) — **done**
+- **Alpha** (Phases 2–3): weekends 2–3 (art + the one-level slice) → **ship it**
+- **Beta** (Phase 4): weekends 4–5+ (three levels + abilities + polish) — expect to re-scope
+- Phase 5: an evening (deploy) — do it once for Alpha, again for Beta
 
-Your PM instinct — scope tightly, ship a slice, iterate — is exactly right here. Get a moving bulldog first; everything else builds on that.
+Your PM instinct — scope tightly, ship a slice, iterate — is exactly why the
+scope is now split: get the **Alpha** slice shipped first, then decide how much
+of **Beta** you actually want. Everything builds on that moving bulldog.
 
 ---
 

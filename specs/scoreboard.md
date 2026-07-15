@@ -1,5 +1,9 @@
 # Feature Spec: Scoreboard (Online High Scores)
 
+> **Scope:** `[Beta]`. WBS: `BOARD-1` / `BOARD-2`. **Deferred out of the Alpha
+> slice** — Alpha ships a simple local results window (nickname + bones + time,
+> WBS `UI-5`) instead of this online board. Build this only in Beta.
+
 > **Worked example for spec-driven development.**
 > Next step: hand this to Claude Code with — *"Read specs/scoreboard.md. Produce an implementation plan and a task breakdown from it. Do not write code yet — I want to review the plan first."* Then approve, implement task by task, and verify Section 4 at the end.
 

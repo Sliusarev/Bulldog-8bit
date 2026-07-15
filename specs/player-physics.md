@@ -1,5 +1,8 @@
 # Feature Spec: Player Physics (Core Movement & Jump)
 
+> **Scope:** `[Alpha]`. WBS: `MOVE-1` / `MOVE-2` / `MOVE-3` (built), plus the
+> `MOVE-7` **Double jump** amendment below (Alpha, planned).
+
 > **Retroactive spec.** Unlike the other specs in this folder, this one documents
 > behavior that's *already built and tested* (Phase 1), rather than planning
 > something new. Its job is to freeze the current tuned values and rules as the
@@ -28,11 +31,30 @@ real art or levels exist.**
 - Keeping the player inside the visible world (can't walk/fall off-screen).
 
 **Out of scope** (future specs/work)
-- Variable jump height (hold-to-jump-higher, mentioned in `CLAUDE.md`) — current
-  jump is a fixed impulse.
+- Variable jump height (hold-to-jump-higher, mentioned in `CLAUDE.md`, WBS
+  `MOVE-4`, `[Beta]`) — current jump is a fixed impulse. Distinct from the
+  Double jump amendment below.
 - Acceleration/deceleration or friction curves — movement is instant on/off.
 - Real sprite + animations (idle/run/jump/hurt) — still a plain rectangle.
-- Enemy physics, stomp bounce, moving platforms, pits/death zones (Phase 3+).
+- Enemy physics, stomp bounce, moving platforms, pits/death zones (Alpha level +).
+
+### Amendment — Double jump (`MOVE-7`, `[Alpha]`, planned)
+
+The original build (below) forbids any mid-air jump. Alpha **adds a double jump**
+as a stand-in to test the future High Jump feel. This amends the rule that was
+frozen here; update this section (and the criterion + edge case marked
+"amended") when the double jump is implemented.
+
+- **New rule:** while airborne, spacebar may trigger **exactly one** extra jump.
+  After that second jump the player must **land** before jumping again (no triple
+  jump, no infinite hover from holding/tapping).
+- Suggested shape for testable logic: track an `airJumpsUsed` counter, reset to 0
+  on landing (`body.blocked.down`); allow a jump when grounded **or** when
+  `airJumpsUsed < 1`; increment it on each mid-air jump. Keep this in a pure
+  function (e.g. `src/physics/player.js`) with unit tests: grounded jump works,
+  one air jump works, a second air jump is blocked, landing re-enables it.
+- The second jump's impulse can match the first (reuse the jump velocity) unless
+  playtesting says otherwise — feel is decided manually.
 
 ## 4. Acceptance criteria
 All verified working as of this spec (tested 2026-07-11). Items marked 🧪 are
@@ -48,7 +70,9 @@ rest require a real Phaser/browser environment and stay manual playtest checks
 - [x] 🧪 Given the player is grounded, when spacebar is pressed, then the player jumps
       upward and gravity brings it back down.
 - [x] 🧪 Given the player is airborne (mid-jump or mid-fall), when spacebar is pressed,
-      then nothing happens (no mid-air/double jump).
+      then nothing happens (no mid-air/double jump). *(Amended by `MOVE-7`
+      `[Alpha]`: Alpha allows exactly one mid-air jump — see the Double jump
+      amendment in §3. Update this criterion when double jump is built.)*
 - [x] Given the player reaches a world edge, then it stops at the edge instead of
       leaving the visible screen.
 - [x] No errors appear in the browser console during any of the above.
@@ -80,8 +104,9 @@ persisted or loaded at runtime.
 ## 7. Edge cases & error handling
 - **Holding spacebar:** uses `JustDown`, so it fires once per physical press, not
   once per frame — no auto-bunny-hop from holding the key down.
-- **Jumping while airborne:** blocked via `body.blocked.down` check — prevents
-  mid-air/double jumps.
+- **Jumping while airborne:** currently blocked via `body.blocked.down` check —
+  prevents mid-air/double jumps. *(Amended by `MOVE-7` `[Alpha]`: replace the
+  hard block with the one-air-jump counter described in §3.)*
 - **Running off the sides:** `setCollideWorldBounds(true)` stops the player at the
   screen edge. Note this means there's currently no way to *fall into a pit* — that
   behavior is deliberately deferred to Level 2 ("Sewer Scramble"), which will need
