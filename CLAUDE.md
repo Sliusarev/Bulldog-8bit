@@ -282,6 +282,46 @@ Buldog_8bit/
 - Prefer small, frequent merges over long-lived branches — matches the
   "small, testable steps" convention below.
 
+#### The agreed delivery flow (per feature)
+
+This is the order every feature follows. **Claude never merges to `main`
+directly** — the PR + Artem's approval is the gate.
+
+1. **Approved requirements (spec).** A spec in `specs/` is written and approved
+   before implementation starts.
+2. **Claude presents a plan + risk level.** Before writing any code, Claude
+   lays out the implementation plan and rates its **risk** (see the rubric
+   below). This tells Artem whether the requirements are solid and the plan is
+   clear enough to proceed.
+3. **Claude implements (locally).** Built on a feature branch, with unit tests
+   and a green local `lint` / `test` / `build`.
+4. **Artem reviews & tests the results.** Artem runs it locally (dev server /
+   playtest) and reviews the behavior.
+5. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
+6. **Claude creates the PR.** Claude pushes the feature branch and opens the
+   PR into `main` (if the `gh` CLI isn't available, Claude pushes the branch
+   and provides the compare URL for Artem to open the PR).
+7. **Artem approves the PR in GitHub.**
+8. **Merge completed** — the PR is merged into `main`.
+
+#### Plan + risk assessment (step 2)
+
+Before implementing a new spec, Claude states the plan and marks a **risk
+level**, scored by **how many assumptions** the approach rests on (an
+assumption = anything the spec doesn't nail down that Claude has to decide or
+guess to proceed):
+
+| Assumptions | Risk | Meaning |
+|---|---|---|
+| 1–2 | **Low** | Requirements are clear; plan is well-grounded. |
+| 3–5 | **Medium** | Some gaps filled by judgment — worth a skim before building. |
+| 6–10 | **High** | Many open decisions — the spec likely needs tightening first. |
+| 11+ | **Not ready** | Too much is unspecified. Claude says it's **not ready to implement** and asks for clarification instead of proceeding. |
+
+Claude lists the actual assumptions (not just the count) so Artem can confirm
+or correct them. The point is to surface shaky requirements *before* code is
+written, not after.
+
 ### Continuous integration (CI)
 - GitHub Actions runs on every push/PR targeting `main`
   (`.github/workflows/ci.yml`).
@@ -314,6 +354,33 @@ Buldog_8bit/
 - One scene per file under `src/scenes/`; keep `main.js` focused on config.
 - Prefer small, testable steps. After adding a feature, confirm the dev server
   still runs and the canvas renders without console errors.
+
+### Keep the tech stack consistent — no "tech zoo"
+
+- The stack is deliberately small: **Phaser 3 + Vite + plain JS (ES modules),
+  Vitest for tests, ESLint for lint.** Stay within it by default.
+- If a story seems to need a **new dependency, tool, or a change to the tech
+  stack**, do **not** just add it. **Flag it explicitly and explain why** —
+  what it's for, why the existing stack can't do the job, and what it costs to
+  support. Get Artem's sign-off before pulling it in. A pile of
+  one-off tools makes the project hard to scale and support; every addition
+  has to earn its place.
+- Prefer solving things with what's already here (Phaser's built-ins, plain
+  JS) over reaching for a library.
+
+### Maximum reuse — keep the code clear and consistent
+
+- **Reuse before you build.** Before adding a new module, sprite, helper, or
+  pattern, check whether an existing one already does it (or nearly does it)
+  and extend/reuse that instead of creating a parallel version. Examples of
+  existing shared logic to build on: `src/physics/` (pure, tested rules like
+  `player.js`, `animation.js`), `src/state/` (e.g. `color-select.js`).
+- **Push reuse back up to the spec/design.** If, while implementing, you see
+  that a "new" element in the requirements could be an existing element reused
+  or generalized, **say so and suggest it** rather than silently building a
+  duplicate. Consolidating beats duplicating.
+- Match the surrounding code's style, naming, and structure so the codebase
+  reads as one consistent thing, not a patchwork.
 
 ## Roadmap (suggested build order)
 
