@@ -68,8 +68,8 @@ time via the existing spec-driven loop.
 - **MOVE-6 — Crawl** 🔲 Backlog `[Beta]` *(new)*
   As a player, I want to lower my body and crawl, so that Cats can't detect me, and so I can duck under the Giant Cat boss's fish projectiles. One input, two uses — worth spec'ing both at once.
 
-- **MOVE-7 — Double jump** 🔲 Backlog `[Alpha]` *(new)*
-  As a player, I want to trigger exactly one extra jump while already airborne (spacebar again), so that I can reach higher platforms. Included in Alpha as a **stand-in to test the High Jump feel** before the Energy-costing High Jump (ABILITY-3) exists. Amends `specs/player-physics.md` (which currently forbids mid-air jumps). Distinct from MOVE-4 (variable height) and ABILITY-3 (Energy-costing High Jump).
+- **MOVE-7 — Double jump** ✅ Done `[Alpha]` *(new)*
+  As a player, I want to trigger exactly one extra jump while already airborne (spacebar again), so that I can reach higher platforms. Included in Alpha as a **stand-in to test the High Jump feel** before the Energy-costing High Jump (ABILITY-3) exists. Spec: `specs/double-jump.md` (amends `specs/player-physics.md`). Built: an `airJumpsUsed` counter in `src/physics/player.js` (unit-tested); ledge walk-off spends the one air jump (no coyote time). Merged to `main` (PR #4). Distinct from MOVE-4 (variable height) and ABILITY-3 (Energy-costing High Jump).
 
 ---
 
@@ -151,8 +151,8 @@ MOVE-7, not here).
 
 ## Epic 5 — SCORE: Collectibles & Scoring
 
-- **SCORE-1 — Small Bone** 🔲 Backlog `[Alpha]`
-  As a player, I want to collect Small Bones that raise my score, so that exploring is rewarded. **In Alpha the score is simply the count of Small Bones collected** (shown next to the level timer, SCORE-7, in the results window, UI-5).
+- **SCORE-1 — Small Bone** ✅ Done `[Alpha]`
+  As a player, I want to collect Small Bones that raise my score, so that exploring is rewarded. **In Alpha the score is simply the count of Small Bones collected** (shown next to the level timer, SCORE-7, in the results window, UI-5). Spec: `specs/small-bones.md`. Built: animated bone (`src/assets/bone.png`), touch-to-collect via overlap, pickup blip (AUDIO-3), pure score rules in `src/state/score.js` (unit-tested), score mirrored into the Phaser registry for UI-3/UI-5. Two bones placed provisionally (final layout with LEVEL-6); temporary debug counter + `R` refresh key until UI-3 lands.
 
 - **SCORE-2 — Large Bone** 🔲 Backlog `[Beta]` *(updated: "+1 XP" confirmed to mean +1 HP)*
   As a player, I want Large Bones worth double a Small Bone's score and healing +1 HP (one heart), so that finding the rarer pickup feels more valuable. Assumption: healing is capped at the starting max of 3 hearts — flag if it should grant a bonus heart beyond that.
@@ -243,13 +243,16 @@ MOVE-7, not here).
 
 ---
 
-## Epic 10 — AUDIO: Audio — all `[Beta]`
+## Epic 10 — AUDIO: Audio — mostly `[Beta]` *(one Alpha exception: AUDIO-3)*
 
 - **AUDIO-1 — Background music** 🔲 Backlog `[Beta]`
   Optionally distinct per level's time-of-day (day / sunset / night) — a nice-to-have, not required.
 
-- **AUDIO-2 — Sound effects** 🔲 Backlog `[Beta]` *(list expanded)*
-  As a player, I want SFX for: jump, high jump, fart attack, rush start, stomp, hurt, Small/Large Bone pickup, Dog Toy pickup, Avocado ("yuck"), idle snore, water-bowl drink (L1 ending), door open (L2 ending), boss fish throw/hit, and a victory/credits jingle. Alpha can ship silent; audio is a Beta polish pass.
+- **AUDIO-2 — Sound effects (full pass)** 🔲 Backlog `[Beta]` *(list expanded)*
+  As a player, I want SFX for: jump, high jump, fart attack, rush start, stomp, hurt, Large Bone pickup, Dog Toy pickup, Avocado ("yuck"), idle snore, water-bowl drink (L1 ending), door open (L2 ending), boss fish throw/hit, and a victory/credits jingle. The full audio pass is a Beta polish step. *(The **Small Bone pickup** blip moved out of this list into AUDIO-3 — it ships in Alpha.)*
+
+- **AUDIO-3 — Basic pickup SFX (Small Bone)** ✅ Done `[Alpha]` *(new — scope change, approved 2026-07-16)*
+  As a player, I want a short 8-bit blip when I collect a Small Bone, so that the pickup feels responsive. **Moved into Alpha** (the rest of the AUDIO epic stays `[Beta]`) — a deliberate exception to "Alpha ships silent", because the pickup reads as unfinished without it. Built as part of `SCORE-1`: `src/assets/bone-pickup.wav` played via Phaser's built-in audio (no new library). Spec: `specs/small-bones.md`.
 
 ---
 
@@ -337,21 +340,22 @@ Carried-over assumptions from the redesign:
 
 ## Summary
 
-**11 Epics, 62 features (57 active + 5 cut):**
-- ✅ 12 done or already satisfied (7 built features — MOVE-1/2/3, CHAR-1/2/4, NFR-11 — plus 5 NFRs met by existing config/process)
+**11 Epics, 63 features (58 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
+- ✅ 15 done or already satisfied (10 built features — MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 43 backlog
+- 🔲 41 backlog
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
 **Scope split (active features):**
 - `[Alpha]` (the vertical slice): MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4,
-  SCORE-1/7, STATE-1/3, LEVEL-6, UI-1/2/3/5, and the Alpha-tagged NFRs
-  (1/2/3/4/5/6/8/9/10/11). Of these, MOVE-1/2/3, CHAR-1/2/4, NFR-11, and the
-  other ✅ NFRs are done — the rest (CHAR-3, MOVE-7, ENEMY-1/3/4, SCORE-1/7,
-  STATE-1/3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the Alpha build backlog.
+  SCORE-1/7, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
+  (1/2/3/4/5/6/8/9/10/11). Of these, MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1,
+  AUDIO-3, NFR-11, and the other ✅ NFRs are done — the rest (CHAR-3,
+  ENEMY-1/3/4, SCORE-7, STATE-1/3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
+  Alpha build backlog.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
-  LEVEL-1/2/3/5, UI-4, the BOARD and AUDIO epics, and NFR-7.
+  LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, and NFR-7.
 
 Ready for your Epic-by-Epic review.

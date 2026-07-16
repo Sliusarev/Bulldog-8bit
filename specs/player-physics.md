@@ -93,8 +93,16 @@ persisted or loaded at runtime.
 | Gravity | `config.physics.arcade.gravity.y` | `600` px/s² |
 | Walk speed | `walkSpeed` in `update()` | `100` px/s |
 | Jump velocity | `setVelocityY(...)` in `update()` | `-300` px/s (upward) |
-| Player size | player rectangle | 16×16 px |
+| Player body size | `body.setSize(...)` on the player | **24×24 px** *(was 16×16 — see note)* |
 | Ground size | ground rectangle | 320×32 px |
+
+> **Player size amended (2026-07-16).** The original 16×16 matched the
+> placeholder rectangle. When the bulldog art was re-exported at 48×48 to read
+> better next to the Small Bones (`CHAR-2`), the body was scaled by the same
+> 1.5× to 24×24 so the visual/hitbox relationship stayed the same. Gravity,
+> walk speed and jump velocity are **unchanged**, so movement feel is
+> unchanged — it's a bigger collision box, not different physics. The exact
+> body offsets live in `specs/character-sprite.md` → §5 Rendering.
 
 ## 7. Edge cases & error handling
 - **Holding spacebar:** uses `JustDown`, so it fires once per physical press, not
@@ -114,8 +122,10 @@ persisted or loaded at runtime.
     and position against the enemy, using this same physics body.
   - **Level 2 pits**: will need to change or override world-bounds behavior on the
     Y axis (falling off should cost a life, not stop at the edge).
-  - **Sprite swap** (Phase 2): replaces the rectangle's visual but should keep the
-    same physics body size (16×16) and behavior described here.
+  - **Sprite swap** (Phase 2, `CHAR-2` — done): replaced the rectangle's visual
+    and kept the behavior described here. The body size has since been amended
+    to 24×24 alongside the 48×48 art re-export (see the note in §6); the
+    movement/jump values are untouched.
 
 ## 9. Definition of done
 This feature is already done: all Section 4 acceptance criteria pass — the 🧪
