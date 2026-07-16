@@ -33,7 +33,8 @@ what ships in Alpha.
 - **One level**, platforming.
 - Movement: run left/right, turn, single jump, and **double jump** (see Core
   mechanics — a stand-in to test the future High Jump feel).
-- **Small Bones** collectibles → score = count of bones collected.
+- **Small Bones** collectibles → score = count of bones collected, with a short
+  **8-bit pickup blip** (`AUDIO-3` — the one audio exception in Alpha).
 - **Level timer** → total elapsed time, shown as a second metric.
 - **Simple enemy** that patrols and is killed **only by stomp** (jump on top).
 - **3 hearts**, using the game's **confirmed damage rule**: enemy contact costs
@@ -47,8 +48,9 @@ what ships in Alpha.
 water-bowl endings · Energy system · Bulldog Rush · High Jump · Fart Attack ·
 Crawl · Large Bone · Dog Toy · Avocado · other enemies (Cat hop behavior, Robot
 Vacuum) · Giant Cat boss · **pause menu** · **online scoreboard + local cache** ·
-music + full SFX · personality/ability animations (snore, fart, rush) · score
-persistence across levels.
+music + the full SFX pass (*except* the Small Bone pickup blip, `AUDIO-3`,
+which ships in Alpha) · personality/ability animations (snore, fart, rush) ·
+score persistence across levels.
 
 > **Alpha uses the confirmed damage rule as-is** (1 heart + level restart, no
 > i-frames — see Health & Energy below). No Alpha-specific health divergence.
@@ -287,22 +289,42 @@ Buldog_8bit/
 This is the order every feature follows. **Claude never merges to `main`
 directly** — the PR + Artem's approval is the gate.
 
-1. **Approved requirements (spec).** A spec in `specs/` is written and approved
-   before implementation starts.
-2. **Claude presents a plan + risk level.** Before writing any code, Claude
-   lays out the implementation plan and rates its **risk** (see the rubric
-   below). This tells Artem whether the requirements are solid and the plan is
-   clear enough to proceed.
-3. **Claude implements (locally).** Built on a feature branch, with unit tests
+1. **Approved requirements (spec).** A spec in `specs/` is written and
+   **approved by Artem** before anything else.
+2. **Claude presents a plan + risk level.** Claude lays out the approach and
+   rates its **risk** (see the rubric below). This tells Artem whether the
+   requirements are solid and the plan is clear enough to proceed.
+3. **Technical design → approved by Artem.** Before writing any code, Claude
+   writes the **technical design** (see below) and Artem approves it.
+   **Implementation does not start until the design is approved.**
+4. **Claude implements (locally).** Built on a feature branch, with unit tests
    and a green local `lint` / `test` / `build`.
-4. **Artem reviews & tests the results.** Artem runs it locally (dev server /
+5. **Artem reviews & tests the results.** Artem runs it locally (dev server /
    playtest) and reviews the behavior.
-5. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
-6. **Claude creates the PR.** Claude pushes the feature branch and opens the
+6. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
+7. **Claude creates the PR.** Claude pushes the feature branch and opens the
    PR into `main` (if the `gh` CLI isn't available, Claude pushes the branch
    and provides the compare URL for Artem to open the PR).
-7. **Artem approves the PR in GitHub.**
-8. **Merge completed** — the PR is merged into `main`.
+8. **Artem approves the PR in GitHub.**
+9. **Merge completed** — the PR is merged into `main`.
+
+#### Technical design (step 3)
+
+Lives as a **`## Technical design` section inside that feature's spec file** —
+one doc per feature, no separate design folder to drift out of sync. It answers
+*how* the approved requirements get built, and is short and concrete:
+
+- **Files touched / created** — exactly what changes, and what's new.
+- **Module design** — the pure, testable logic (names + signatures) and what
+  stays in the Phaser Scene as a thin adapter.
+- **Data flow / state** — what's stored, where it lives, who reads it.
+- **Reuse** — what existing modules/patterns/assets this builds on, and an
+  explicit note on anything genuinely new (and why it can't reuse something).
+  Any new dependency or tool must be called out and justified here (see "no
+  tech zoo").
+- **Test plan** — which acceptance criteria become unit tests vs. manual
+  playtest.
+- **Open questions / assumptions + risk** — anything still unresolved.
 
 #### Plan + risk assessment (step 2)
 
