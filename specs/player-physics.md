@@ -41,20 +41,15 @@ real art or levels exist.**
 ### Amendment — Double jump (`MOVE-7`, `[Alpha]`, planned)
 
 The original build (below) forbids any mid-air jump. Alpha **adds a double jump**
-as a stand-in to test the future High Jump feel. This amends the rule that was
-frozen here; update this section (and the criterion + edge case marked
-"amended") when the double jump is implemented.
+as a stand-in to test the future High Jump feel, which amends the rule frozen
+here (and the acceptance criterion + edge case marked "amended" below).
 
-- **New rule:** while airborne, spacebar may trigger **exactly one** extra jump.
-  After that second jump the player must **land** before jumping again (no triple
-  jump, no infinite hover from holding/tapping).
-- Suggested shape for testable logic: track an `airJumpsUsed` counter, reset to 0
-  on landing (`body.blocked.down`); allow a jump when grounded **or** when
-  `airJumpsUsed < 1`; increment it on each mid-air jump. Keep this in a pure
-  function (e.g. `src/physics/player.js`) with unit tests: grounded jump works,
-  one air jump works, a second air jump is blocked, landing re-enables it.
-- The second jump's impulse can match the first (reuse the jump velocity) unless
-  playtesting says otherwise — feel is decided manually.
+**The full MOVE-7 requirements now live in `specs/double-jump.md`** — the rule
+(exactly one mid-air jump, must land before jumping again, reusing the existing
+`jump` animation) and the open ledge/coyote-time decision. This section is a
+pointer to avoid duplicating the jump rules in two places; when double jump
+ships, update the "amended" criterion/edge case below to match
+`specs/double-jump.md`.
 
 ## 4. Acceptance criteria
 All verified working as of this spec (tested 2026-07-11). Items marked 🧪 are
@@ -69,10 +64,10 @@ rest require a real Phaser/browser environment and stay manual playtest checks
 - [x] 🧪 Given no arrow is held, then horizontal velocity stops immediately.
 - [x] 🧪 Given the player is grounded, when spacebar is pressed, then the player jumps
       upward and gravity brings it back down.
-- [x] 🧪 Given the player is airborne (mid-jump or mid-fall), when spacebar is pressed,
-      then nothing happens (no mid-air/double jump). *(Amended by `MOVE-7`
-      `[Alpha]`: Alpha allows exactly one mid-air jump — see the Double jump
-      amendment in §3. Update this criterion when double jump is built.)*
+- [x] 🧪 Given the player is airborne, when spacebar is pressed, then **exactly
+      one** mid-air (double) jump is allowed; a further mid-air press does
+      nothing until the player lands. *(Amended by `MOVE-7` — built. Full spec
+      and tests: `specs/double-jump.md` / `src/physics/player.test.js`.)*
 - [x] Given the player reaches a world edge, then it stops at the edge instead of
       leaving the visible screen.
 - [x] No errors appear in the browser console during any of the above.
@@ -104,9 +99,10 @@ persisted or loaded at runtime.
 ## 7. Edge cases & error handling
 - **Holding spacebar:** uses `JustDown`, so it fires once per physical press, not
   once per frame — no auto-bunny-hop from holding the key down.
-- **Jumping while airborne:** currently blocked via `body.blocked.down` check —
-  prevents mid-air/double jumps. *(Amended by `MOVE-7` `[Alpha]`: replace the
-  hard block with the one-air-jump counter described in §3.)*
+- **Jumping while airborne:** allows exactly one mid-air (double) jump via an
+  `airJumpsUsed` counter (reset on landing) — see `MOVE-7` /
+  `specs/double-jump.md`. Walking off a ledge counts as that one air jump (no
+  coyote time — a deliberate decision, flagged in `double-jump.md` §7).
 - **Running off the sides:** `setCollideWorldBounds(true)` stops the player at the
   screen edge. Note this means there's currently no way to *fall into a pit* — that
   behavior is deliberately deferred to Level 2 ("Sewer Scramble"), which will need

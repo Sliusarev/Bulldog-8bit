@@ -2,7 +2,7 @@
 // This file boots up Phaser and shows a blank game canvas.
 
 import Phaser from "phaser";
-import { getWalkVelocityX, canJump, JUMP_VELOCITY } from "./physics/player.js";
+import { getWalkVelocityX, canJump, nextAirJumpsUsed, JUMP_VELOCITY } from "./physics/player.js";
 import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
 import buldogSheet from "./assets/buldog.png";
@@ -58,6 +58,9 @@ class BootScene extends Phaser.Scene {
     // applied as a tint — the same mechanism as the rectangle's fillColor.
     this.currentColor = DEFAULT_COLOR;
     this.facing = DEFAULT_FACING;
+    // How many mid-air jumps have been used since last landing (MOVE-7 double
+    // jump — see specs/double-jump.md). Reset to 0 whenever grounded.
+    this.airJumpsUsed = 0;
     this.player = this.physics.add.sprite(160, 180, "buldog", 0);
     // Keep the same 16x16 hitbox the placeholder rectangle used
     // (specs/player-physics.md), centered within the 32x32 sprite frame.
@@ -128,11 +131,19 @@ class BootScene extends Phaser.Scene {
     // something solid (like the ground).
     const isGrounded = this.player.body.blocked.down;
 
-    if (canJump({ jumpPressed, isGrounded })) {
+    // Allow a jump when grounded OR when a mid-air (double) jump is still
+    // available. The same JUMP_VELOCITY is reused for both (MOVE-7).
+    const didJump = canJump({ jumpPressed, isGrounded, airJumpsUsed: this.airJumpsUsed });
+    if (didJump) {
       // Negative y velocity means "upward" in screen coordinates. Gravity
       // (set in the config below) will pull the player back down.
       this.player.body.setVelocityY(JUMP_VELOCITY);
     }
+
+    // Update the mid-air jump counter every frame: it resets on landing and
+    // ticks up each time a mid-air jump is spent, so the double jump can't
+    // repeat until the player touches ground again.
+    this.airJumpsUsed = nextAirJumpsUsed(this.airJumpsUsed, { isGrounded, didJump });
 
     // Play whichever animation the current state calls for. `play`'s second
     // argument (ignoreIfPlaying) skips restarting an animation that's already
