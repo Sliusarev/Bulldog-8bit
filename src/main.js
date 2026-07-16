@@ -5,7 +5,10 @@ import Phaser from "phaser";
 import { getWalkVelocityX, canJump, nextAirJumpsUsed, JUMP_VELOCITY } from "./physics/player.js";
 import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
+import { INITIAL_SCORE, addBone, resetScore, formatScore } from "./state/score.js";
 import buldogSheet from "./assets/buldog.png";
+import boneSheet from "./assets/bone.png";
+import bonePickupSfx from "./assets/bone-pickup.wav";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -15,10 +18,14 @@ class BootScene extends Phaser.Scene {
   }
 
   // preload() runs first and is where we load images and sounds. The bulldog
-  // spritesheet is a 3-row x 11-col grid of 32x32 cells (idle/run/jump rows
+  // spritesheet is a 3-row x 11-col grid of 48x48 cells (idle/run/jump rows
   // extracted from the source art — see specs/character-sprite.md §5).
   preload() {
-    this.load.spritesheet("buldog", buldogSheet, { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("buldog", buldogSheet, { frameWidth: 48, frameHeight: 48 });
+    // Small Bone collectible (specs/small-bones.md). Same 32x32-cell layout as
+    // the bulldog sheet, so it loads the same way.
+    this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
+    this.load.audio("bone-pickup", bonePickupSfx);
   }
 
   // create() runs once when the scene starts. This is where we build the
@@ -49,11 +56,9 @@ class BootScene extends Phaser.Scene {
 
     // The real animated bulldog sprite (see specs/character-sprite.md),
     // starting a bit above the ground so he visibly falls into place. Drawn
-    // at its native 32x32 size (no setScale) — a bit bigger than the 16x16
-    // physics body it sits on, same "visual overhang beyond the hitbox" most
-    // platformers use (deliberately NOT trying to make the sprite's display
-    // size exactly match the body: combining setScale with a custom body
-    // size confuses Arcade Physics's offset math, which assumes scale 1).
+    // at its native 48x48 size (no setScale) — the art is exported at the size
+    // we want it on screen, because combining setScale with a custom body size
+    // confuses Arcade Physics's offset math (it assumes scale 1).
     // Color comes from the color-select rules (see specs/color-select.md),
     // applied as a tint — the same mechanism as the rectangle's fillColor.
     this.currentColor = DEFAULT_COLOR;
@@ -62,9 +67,13 @@ class BootScene extends Phaser.Scene {
     // jump — see specs/double-jump.md). Reset to 0 whenever grounded.
     this.airJumpsUsed = 0;
     this.player = this.physics.add.sprite(160, 180, "buldog", 0);
-    // Keep the same 16x16 hitbox the placeholder rectangle used
-    // (specs/player-physics.md), centered within the 32x32 sprite frame.
-    this.player.body.setSize(16, 16);
+    // 24x24 hitbox — the 16x16 baseline scaled with the art (specs/player-physics.md).
+    // The sheet is exported with the dog centered horizontally and its feet on
+    // the frame's bottom edge, so a centered body (offset x 12) lines up whether
+    // the sprite is flipped or not, and offset y 24 puts the body's bottom on
+    // the dog's feet — i.e. he stands ON the ground rather than sinking into it.
+    this.player.body.setSize(24, 24, false);
+    this.player.body.setOffset(12, 24);
     this.player.setTint(colorToTint(this.currentColor));
     this.player.play(ANIMATIONS.idle.key);
 
@@ -84,6 +93,42 @@ class BootScene extends Phaser.Scene {
     // for jumping.
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+    // --- Small Bones + bone-count score (specs/small-bones.md) ---
+
+    // The bone's idle bob. IMPORTANT: the sheet has 4 cells but only 3 drawn
+    // frames — cell 3 is empty, so `end: 2` keeps a blank frame from flickering
+    // through the loop.
+    this.anims.create({
+      key: "bone-idle",
+      frames: this.anims.generateFrameNumbers("bone", { start: 0, end: 2 }),
+      frameRate: 5,
+      repeat: -1,
+    });
+
+    // Bones are static: they sit still and don't fall, so gravity/velocity
+    // never apply to them.
+    this.bones = this.physics.add.staticGroup();
+    this.spawnBones();
+
+    this.score = INITIAL_SCORE;
+
+    // TEMPORARY debug counter so we can see collecting works before the real
+    // HUD (UI-3) exists. Removed when UI-3 lands — same "temporary until the
+    // real UI" idea as the C color key below.
+    this.scoreText = this.add.text(8, 8, formatScore(this.score), {
+      fontFamily: "monospace",
+      fontSize: "12px",
+      color: "#ffffff",
+    });
+
+    // Collect a bone by touching it — overlap (not collider) so the player
+    // passes through rather than bumping into it.
+    this.physics.add.overlap(this.player, this.bones, this.collectBone, null, this);
+
+    // TEMPORARY dev key: press R to respawn the bones and reset the score, so
+    // collecting can be re-tested without reloading the page.
+    this.refreshKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+
     // TEMPORARY dev key: press C to cycle the bulldog's color
     // (white -> black -> red). This proves the color-select feature works
     // before the real title screen exists; the title screen (UI-2) will drive
@@ -97,12 +142,73 @@ class BootScene extends Phaser.Scene {
     this.fullscreenKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
   }
 
+  // Puts the two Small Bones back in the world: one to the left of the
+  // player's spawn, one to the right. Called on create() and again by the R
+  // refresh key. Positions are provisional — the real layout comes with the
+  // Alpha level (LEVEL-6).
+  spawnBones() {
+    const groundTopY = 196; // sits the bone on top of the ground strip
+    const positions = [
+      { x: 60, y: groundTopY }, // left of spawn
+      { x: 260, y: groundTopY }, // right of spawn
+    ];
+
+    positions.forEach(({ x, y }) => {
+      // Reuse an already-collected bone if there is one, otherwise make it.
+      // (Collected bones are disabled, not destroyed, so refresh can revive
+      // them instead of piling up new sprites.)
+      const existing = this.bones.getChildren().find((bone) => bone.x === x && bone.y === y);
+
+      if (existing) {
+        // enableBody(reset, x, y, enableGameObject, showGameObject)
+        existing.enableBody(true, x, y, true, true);
+      } else {
+        this.bones.create(x, y, "bone");
+      }
+    });
+
+    // Static bodies cache their position, so re-enabled bones need their
+    // physics body re-synced or the overlap would use stale coordinates.
+    this.bones.refresh();
+
+    // play() on each bone rather than the group, so every bone bobs.
+    this.bones.getChildren().forEach((bone) => bone.play("bone-idle"));
+  }
+
+  // Runs when the player touches a bone. Phaser passes (player, bone).
+  collectBone(player, bone) {
+    // Take the bone out of the world AND hide it. Disabling the body is what
+    // guarantees one bone counts exactly once — a disabled body can't fire the
+    // overlap again on the following frames.
+    bone.disableBody(true, true);
+
+    this.sound.play("bone-pickup");
+
+    // Ask the pure rule for the new score, then reflect it on screen.
+    this.score = addBone(this.score);
+    this.scoreText.setText(formatScore(this.score));
+
+    // Mirror into Phaser's registry so the future HUD (UI-3) and results
+    // window (UI-5) can read the score without reaching into this Scene.
+    this.registry.set("score", this.score);
+  }
+
   // update() runs ~60 times per second. This reads Phaser's input/physics
   // state, hands it to the plain (unit-tested) rules in physics/player.js,
   // and applies whatever they decide. The rules themselves live outside
   // Phaser so they can be tested without a browser — see
   // src/physics/player.test.js.
   update() {
+    // TEMPORARY: R puts the bones back and resets the score, so collecting can
+    // be re-tested without a page reload. JustDown so holding R doesn't respawn
+    // every frame.
+    if (Phaser.Input.Keyboard.JustDown(this.refreshKey)) {
+      this.spawnBones();
+      this.score = resetScore();
+      this.scoreText.setText(formatScore(this.score));
+      this.registry.set("score", this.score);
+    }
+
     // Cycle the bulldog's color when C is JUST pressed (JustDown is true for
     // one frame only, so holding C doesn't strobe through colors).
     if (Phaser.Input.Keyboard.JustDown(this.colorKey)) {

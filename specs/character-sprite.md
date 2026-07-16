@@ -86,13 +86,16 @@ Numbered to match the ClickUp ticket 1:1.
 - **Alpha uses only three rows**: `IDLE1` (5 frames), `RUN` (8 frames), `JUMP`
   (11 frames). `IDLE2`, `SIT`, `WALK`, `SNIFF`, `SNIFF&WALK` are not used —
   per the user's instruction, they're not relevant to Alpha.
-- Processed into `src/assets/buldog.png`: a clean 352×96 spritesheet, 3 rows ×
-  11 columns of 32×32 cells (downsized from the source 64×64 cells — big
-  enough to stay legible, small enough to keep a sensible "visual overhang"
-  over the 16×16 physics body; unused trailing cells in the idle/run rows are
-  transparent padding so the grid stays uniform for Phaser's spritesheet
-  loader), background flattened to transparent. Frame index layout (row-major,
-  as Phaser will read it with `frameWidth: 32, frameHeight: 32`):
+- Processed into `src/assets/buldog.png`: a clean 528×144 spritesheet, 3 rows ×
+  11 columns of 48×48 cells (downsized from the source 64×64 cells; unused
+  trailing cells in the idle/run rows are transparent padding so the grid stays
+  uniform for Phaser's spritesheet loader), background flattened to
+  transparent. **Every frame is shifted by one uniform offset** so the dog is
+  **centred horizontally** and its **feet sit on the frame's bottom edge** —
+  one shift for all frames, so the animation's relative motion is preserved.
+  That framing is what lets a centred physics body line up whether or not the
+  sprite is flipped (see §5 Rendering). Frame index layout (row-major, as
+  Phaser reads it with `frameWidth: 48, frameHeight: 48`):
   - **idle**: frames 0–4
   - **run**: frames 11–18
   - **jump**: frames 22–32
@@ -114,13 +117,26 @@ while velocity is 0 (so the bulldog doesn't snap to a default facing every
 time it stops or jumps straight up).
 
 ### Rendering
-- Sprite is drawn at its native 32×32 size (no `setScale`). The **physics
-  body stays 16×16**, same as the placeholder rectangle (`specs/player-physics.md`
-  §8 dependency note), via an explicit `body.setSize(16, 16)` centered in the
-  32×32 frame — i.e. the visible sprite has a small overhang past the hitbox,
-  the same convention most platformers use. (Combining `setScale` with a
-  custom body size was tried first and rejected — Arcade Physics's body-offset
-  math assumes scale 1, so the two together misaligned the hitbox badly.)
+- Sprite is drawn at its **native 48×48 size** (no `setScale`). **The art is
+  exported at the size we want on screen** — combining `setScale` with a custom
+  body size was tried first and rejected, because Arcade Physics's body-offset
+  math assumes scale 1 and the two together misaligned the hitbox badly. To
+  resize the hero, re-export the sheet at the new cell size rather than
+  scaling at runtime.
+  - *(Sized up from 32×32 to 48×48 on 2026-07-16 — at 32×32 the dog read too
+    small next to the Small Bones.)*
+- **Physics body: 24×24** — the 16×16 baseline (`specs/player-physics.md`)
+  scaled by the same 1.5×, so the visual/hitbox relationship is unchanged, as
+  is jump/gravity feel. Set explicitly:
+  `body.setSize(24, 24, false)` + `body.setOffset(12, 24)`.
+  - `offset.x = 12` centres the body in the 48-wide frame. This matters
+    because **`flipX` mirrors the art but not the body** — with the art
+    centred in the frame (see §5 Source art) and the body centred on the same
+    axis, the hitbox stays on the dog in both facing directions. An
+    off-centre body would sit completely off the dog when facing left.
+  - `offset.y = 24` puts the body's **bottom on the dog's feet** (the art is
+    exported feet-on-the-frame's-bottom-edge), so he stands *on* the ground
+    instead of sinking into or floating above it.
 - Color tint (`CHAR-4`) is applied via `sprite.setTint(...)`, replacing the
   rectangle's `setFillStyle(...)` call — same hex values, no changes to
   `src/state/color-select.js`.
@@ -158,13 +174,18 @@ None. Frame indices/animation keys are constants in code; no save data.
   from the main silhouette (a handful of px, vs. 100+ for the real body) is
   stripped. This cleans up both causes across all frames without needing to
   hand-pick a mask region per frame.
-- **Hitbox-to-art alignment:** the source art isn't registered to a
-  consistent pivot per frame (the dog sits at a different spot within its
-  32×32 cell depending on pose), so a single centered 16×16 body can't line
-  up pixel-perfectly with every frame. Not a functional bug — no AC requires
-  pixel-exact collision — and per `CLAUDE.md`'s testing strategy, hitbox feel
-  is a manual-playtest tuning question, not something this spec locks down.
-  Revisit only if playtesting finds it actually feels wrong.
+- **Hitbox-to-art alignment (improved at the 48×48 re-export):** the source
+  art isn't registered to a consistent pivot — the dog sits at a different
+  spot within each source cell depending on pose, and originally sat in the
+  *left* half of the frame. A centred body therefore lined up poorly, and
+  would have sat completely **off** the dog once `flipX` mirrored the art.
+  Fixed at export: one uniform shift centres the dog horizontally and drops
+  its feet to the frame's bottom edge, so the centred 24×24 body lines up in
+  both facing directions and rests exactly on the ground. Per-frame pose
+  differences still mean it isn't pixel-perfect on every frame — that's fine
+  (no AC requires pixel-exact collision, and per `CLAUDE.md`'s testing
+  strategy hitbox feel is a playtest question). Revisit only if playtesting
+  says it feels wrong.
 
 ## 8. Dependencies
 - **Depends on `CHAR-1`** (placeholder rectangle + physics body being
