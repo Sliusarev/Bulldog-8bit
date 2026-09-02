@@ -278,11 +278,38 @@ Buldog_8bit/
 - **Trunk-based development.** Work happens on short-lived feature branches
   (e.g. `phase2-bulldog-art`) opened as a PR into `main`, even as a solo dev —
   the PR is a review checkpoint (a diff to read before it's permanent) and an
-  easy revert point, not a process gate. No required external reviewers or
-  branch protection rules; that would be more ceremony than a solo hobby
-  project needs.
+  easy revert point. **No required external reviewers** — approval is Artem's
+  alone; that much ceremony a solo hobby project doesn't need.
 - Prefer small, frequent merges over long-lived branches — matches the
   "small, testable steps" convention below.
+
+#### `main` is protected (GitHub ruleset)
+
+A branch ruleset on `main` enforces the flow above, so it can't be bypassed by
+accident. Exactly four rules are on:
+
+| Rule | Effect |
+|---|---|
+| Block force pushes | History on `main` can't be rewritten |
+| Restrict deletions | `main` can't be deleted |
+| Require a pull request before merging | Nothing reaches `main` outside a PR (**0 required approvals** — Artem merges his own PRs) |
+| Require status checks: `build-and-test` | A red CI run blocks the merge |
+
+Consequences to work with, not around:
+
+- **Never push straight to `main`** — it will be rejected. Even a one-line doc
+  fix goes on a branch and through a PR.
+- **Never force-push `main`.** If history genuinely has to be rewritten, Artem
+  temporarily sets the ruleset's *Enforcement status* to Disabled and re-enables
+  it after — that's a deliberate, manual act, not something to route around.
+- The required check is the **job** name `build-and-test` (from
+  `.github/workflows/ci.yml`), not the workflow name `CI`. If the job is ever
+  renamed, the ruleset has to be updated in the same change or every PR blocks
+  forever waiting on a check that never reports.
+- **Signed commits are deliberately NOT required.** Commits here are unsigned
+  and `gpg` isn't installed; turning that rule on blocks all merges until SSH
+  commit signing is set up first. Set up signing before re-enabling it, not
+  after.
 
 #### The agreed delivery flow (per feature)
 
