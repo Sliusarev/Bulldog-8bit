@@ -129,8 +129,8 @@ MOVE-7, not here).
 
 ## Epic 4 — ENEMY: Enemies & Combat
 
-- **ENEMY-1 — Angry Pomeranian** 🔲 Backlog `[Alpha]` *(Alpha uses a trimmed version)*
-  As a player, I want a patrolling Angry Pomeranian that costs me a heart (and restarts the level) on contact but can be defeated, so that I have a fast enemy to respect. **Alpha ships a trimmed version as its single "simple enemy":** it patrols and is defeated by **Stomp only** (ENEMY-4); Fart Attack / Bulldog Rush kill paths are `[Beta]`, and contact follows the confirmed damage rule (ENEMY-3 / STATE-1: 1 heart + level restart, no i-frames). The full multi-kill-path version is `[Beta]`.
+- **ENEMY-1 — Angry Pomeranian** ✅ Done `[Alpha]` *(the trimmed Alpha version only — the full `[Beta]` multi-kill-path Pomeranian is still backlog)*
+  As a player, I want a patrolling Angry Pomeranian that costs me a heart (and restarts the level) on contact but can be defeated, so that I have a fast enemy to respect. **Alpha ships a trimmed version as its single "simple enemy":** it patrols and is defeated by **Stomp only** (ENEMY-4); Fart Attack / Bulldog Rush kill paths are `[Beta]`, and contact follows the confirmed damage rule (ENEMY-3 / STATE-1: 1 heart + level restart, no i-frames). The full multi-kill-path version is `[Beta]`. **Alpha version shipped** — see `specs/simple-enemy-stomp.md`; art is a placeholder cat sprite, swappable later. Note the contact damage itself is **not** built yet: contact is only *classified* as a hit; the heart loss + level restart lands with ENEMY-3.
 
 - **ENEMY-2 — Cat** 🔲 Backlog `[Beta]` *(behavior redefined)*
   As a player, I want Cats that move in short hops with pauses, appearing on platforms/ground/elevated spots, costing me a heart (and restarting the level) on contact but defeatable by Stomp, Fart Attack, or Bulldog Rush, so that positioning and timing matter. Can't detect me while I'm crawling (MOVE-6).
@@ -138,8 +138,8 @@ MOVE-7, not here).
 - **ENEMY-3 — Contact damage rule (level restart)** 🔲 Backlog `[Alpha]` *(confirmed: 1 heart + level restart)*
   As a player, when I'm hit by any enemy — Angry Pomeranian, Cat, Robot Vacuum Cleaner, or the Giant Cat boss's fish projectile — I lose 1 heart and the current level restarts from the beginning (heart count carries over, doesn't refill). At 0 hearts, the run ends. Same rule everywhere, no per-enemy or boss exception. **Applies from Alpha** (Alpha's simple enemy uses it); the Beta enemies/boss just reuse the same rule. See STATE-1/STATE-3.
 
-- **ENEMY-4 — Stomp-to-defeat + bounce** 🔲 Backlog `[Alpha]`
-  As a player, I want to defeat an enemy by landing on its head and bounce slightly afterward, so that stomping feels responsive. **In Alpha, stomp is the only kill method** (against the ENEMY-1 simple enemy). Full applicability (Angry Pomeranian, Cat, Robot Vacuum from above; not the Giant Cat boss) is `[Beta]`.
+- **ENEMY-4 — Stomp-to-defeat + bounce** ✅ Done `[Alpha]`
+  As a player, I want to defeat an enemy by landing on its head and bounce slightly afterward, so that stomping feels responsive. **In Alpha, stomp is the only kill method** (against the ENEMY-1 simple enemy). Full applicability (Angry Pomeranian, Cat, Robot Vacuum from above; not the Giant Cat boss) is `[Beta]`. **Shipped** — see `specs/simple-enemy-stomp.md`; a stomp also knocks the enemy away Mario-style (pops up 15% of a jump, then falls through the ground off-screen).
 
 - **ENEMY-5 — Robot Vacuum Cleaner** 🔲 Backlog `[Beta]` *(new)*
   As a player, I want a fast robot vacuum in Level 3 that actively chases me and costs me a heart (and restarts the level) on contact, defeatable only by a stomp-from-above or Bulldog Rush (not Fart Attack), so that House levels feel different from Street levels.
@@ -341,9 +341,9 @@ Carried-over assumptions from the redesign:
 ## Summary
 
 **11 Epics, 63 features (58 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
-- ✅ 15 done or already satisfied (10 built features — MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+- ✅ 17 done or already satisfied (12 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/4, SCORE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 41 backlog
+- 🔲 39 backlog
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
@@ -351,9 +351,9 @@ Carried-over assumptions from the redesign:
 - `[Alpha]` (the vertical slice): MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4,
   SCORE-1/7, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
   (1/2/3/4/5/6/8/9/10/11). Of these, MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1,
-  AUDIO-3, NFR-11, and the other ✅ NFRs are done — the rest (CHAR-3,
-  ENEMY-1/3/4, SCORE-7, STATE-1/3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
-  Alpha build backlog.
+  AUDIO-3, NFR-11, ENEMY-1/4, and the other ✅ NFRs are done — the rest
+  (CHAR-3, ENEMY-3, SCORE-7, STATE-1/3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are
+  the Alpha build backlog.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
   LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, and NFR-7.
