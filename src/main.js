@@ -6,9 +6,20 @@ import { getWalkVelocityX, canJump, nextAirJumpsUsed, JUMP_VELOCITY } from "./ph
 import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
 import { INITIAL_SCORE, addBone, resetScore, formatScore } from "./state/score.js";
+import {
+  CONTACT,
+  INITIAL_DIRECTION,
+  classifyContact,
+  getDeathPopVelocity,
+  getPatrolVelocityX,
+  getStompBounceVelocity,
+  isOffScreenBelow,
+  nextPatrolDirection,
+} from "./physics/enemy.js";
 import buldogSheet from "./assets/buldog.png";
 import boneSheet from "./assets/bone.png";
 import bonePickupSfx from "./assets/bone-pickup.wav";
+import enemySheet from "./assets/enemy-cat.png";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -26,6 +37,10 @@ class BootScene extends Phaser.Scene {
     // the bulldog sheet, so it loads the same way.
     this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
     this.load.audio("bone-pickup", bonePickupSfx);
+    // The simple stompable enemy (specs/simple-enemy-stomp.md). A 2x2 grid of
+    // 25x25 cells — a placeholder cat standing in for the Angry Pomeranian,
+    // deliberately a bit smaller than the 48x48 bulldog.
+    this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
   }
 
   // create() runs once when the scene starts. This is where we build the
@@ -125,6 +140,27 @@ class BootScene extends Phaser.Scene {
     // passes through rather than bumping into it.
     this.physics.add.overlap(this.player, this.bones, this.collectBone, null, this);
 
+    // --- Simple enemy + stomp (specs/simple-enemy-stomp.md) ---
+
+    // The enemy's only state is walking — it patrols non-stop, so there's no
+    // idle animation to define. All four cells are used: cells 1 and 3 are
+    // identical, which is what makes the loop a gentle A-B-C-B bob.
+    this.anims.create({
+      key: "enemy-walk",
+      frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
+      frameRate: 7,
+      repeat: -1,
+    });
+
+    // A DYNAMIC group, unlike the bones' static one: enemies walk, fall, and
+    // (once stomped) get launched, so they need real physics bodies.
+    this.enemies = this.physics.add.group();
+    this.spawnEnemies();
+
+    this.physics.add.collider(this.enemies, ground);
+
+    this.physics.add.overlap(this.player, this.enemies, this.touchEnemy, null, this);
+
     // TEMPORARY dev key: press R to respawn the bones and reset the score, so
     // collecting can be re-tested without reloading the page.
     this.refreshKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
@@ -175,6 +211,78 @@ class BootScene extends Phaser.Scene {
     this.bones.getChildren().forEach((bone) => bone.play("bone-idle"));
   }
 
+  // Puts the enemy in the world (and back, when R is pressed). Position is
+  // provisional — well clear of the player's spawn at x 160 so they can't start
+  // overlapping — and the real layout comes with the Alpha level (LEVEL-6).
+  spawnEnemies() {
+    const startY = 180; // above the ground; it falls into place like the player
+    const positions = [{ x: 240, y: startY }];
+
+    positions.forEach(({ x, y }) => {
+      const enemy = this.enemies.create(x, y, "enemy");
+
+      // 16x18 hitbox inside the 25x25 cell: the drawn body without the
+      // tentacles, centered horizontally and sitting on the frame's feet —
+      // the same inset technique as the bulldog's 24x24 body in its 48x48 cell.
+      enemy.body.setSize(16, 18, false);
+      enemy.body.setOffset(4, 5);
+      enemy.body.setCollideWorldBounds(true);
+
+      // Per-enemy patrol state lives on the sprite itself, so adding a second
+      // enemy later needs no extra bookkeeping in the Scene. The name is
+      // `patrolOriginX`, NOT `originX` — see the note in physics/enemy.js:
+      // `originX` is a Phaser built-in and gets overwritten.
+      enemy.patrolOriginX = x;
+      enemy.direction = INITIAL_DIRECTION;
+      enemy.isDead = false;
+
+      enemy.play("enemy-walk");
+    });
+  }
+
+  // Runs when the player touches an enemy. The pure rule decides what kind of
+  // touch it was; this method only applies the consequences.
+  touchEnemy(player, enemy) {
+    const contact = classifyContact({
+      playerVelocityY: player.body.velocity.y,
+      playerBottom: player.body.bottom,
+      enemyMidY: enemy.body.center.y,
+      isDead: enemy.isDead,
+    });
+
+    if (contact === CONTACT.STOMP) {
+      this.killEnemy(enemy);
+      // The player's little hop off the enemy's head.
+      player.body.setVelocityY(getStompBounceVelocity(JUMP_VELOCITY));
+    } else if (contact === CONTACT.HIT) {
+      // TEMPORARY: hearts don't exist yet. The next story (ENEMY-3 / STATE-1)
+      // replaces this flash with the real rule — lose 1 heart and restart the
+      // level — consuming exactly this CONTACT.HIT signal.
+      console.log("Player hit by enemy (hearts land in ENEMY-3)");
+      player.setTint(0xff0000);
+      this.time.delayedCall(200, () => player.setTint(colorToTint(this.currentColor)));
+    }
+    // CONTACT.NONE — a corpse still falling away. Nothing to do.
+  }
+
+  // The Mario-style knock-away: the enemy pops up slightly, then falls THROUGH
+  // the ground and off the bottom of the screen.
+  killEnemy(enemy) {
+    // Mark it dead FIRST, in the same frame as the stomp: classifyContact then
+    // returns NONE, so no later overlap can stomp or hurt through the corpse.
+    enemy.isDead = true;
+
+    // Take away everything that could catch it on the way down, so nothing
+    // stops the fall. Switched off on THIS body rather than by disabling the
+    // shared group collider — otherwise killing one enemy would drop every
+    // other enemy through the floor too, once the level has more than one.
+    enemy.body.checkCollision.none = true;
+    enemy.body.setCollideWorldBounds(false);
+
+    enemy.body.setVelocityX(0);
+    enemy.body.setVelocityY(getDeathPopVelocity(JUMP_VELOCITY));
+  }
+
   // Runs when the player touches a bone. Phaser passes (player, bone).
   collectBone(player, bone) {
     // Take the bone out of the world AND hide it. Disabling the body is what
@@ -207,7 +315,41 @@ class BootScene extends Phaser.Scene {
       this.score = resetScore();
       this.scoreText.setText(formatScore(this.score));
       this.registry.set("score", this.score);
+      // The enemy comes back too, so a stomp can be re-tested without a reload.
+      // Clear first: unlike the bones (which are only ever disabled and
+      // revived), enemies are destroyed on death, and refreshing mid-patrol
+      // would otherwise leave a second live enemy walking around.
+      this.enemies.clear(true, true);
+      this.spawnEnemies();
     }
+
+    // Walk each living enemy back and forth, and clear away any corpse that has
+    // finished falling off the bottom of the screen.
+    this.enemies.getChildren().forEach((enemy) => {
+      if (enemy.isDead) {
+        if (isOffScreenBelow(enemy.y, this.scale.height)) enemy.destroy();
+        return;
+      }
+
+      // `blocked` is true when the body is pressed against something SOLID —
+      // a wall, a platform edge, or the edge of the world — which is what lets
+      // the enemy turn on obstacles as well as at the ends of its range.
+      //
+      // Deliberately NOT `touching`: Arcade Physics sets that for overlaps too,
+      // so the player counted as a wall and the enemy flipped direction every
+      // frame while being touched, tapping in place instead of walking past.
+      enemy.direction = nextPatrolDirection({
+        x: enemy.x,
+        patrolOriginX: enemy.patrolOriginX,
+        direction: enemy.direction,
+        blockedLeft: enemy.body.blocked.left,
+        blockedRight: enemy.body.blocked.right,
+      });
+      enemy.body.setVelocityX(getPatrolVelocityX(enemy.direction));
+      // The art faces right, so walking left is the flipped case — same
+      // convention as the bulldog's facing (see physics/animation.js).
+      enemy.setFlipX(enemy.direction < 0);
+    });
 
     // Cycle the bulldog's color when C is JUST pressed (JustDown is true for
     // one frame only, so holding C doesn't strobe through colors).
