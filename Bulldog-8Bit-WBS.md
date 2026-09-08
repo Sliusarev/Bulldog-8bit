@@ -135,7 +135,7 @@ MOVE-7, not here).
 - **ENEMY-2 — Cat** 🔲 Backlog `[Beta]` *(behavior redefined)*
   As a player, I want Cats that move in short hops with pauses, appearing on platforms/ground/elevated spots, costing me a heart (and restarting the level) on contact but defeatable by Stomp, Fart Attack, or Bulldog Rush, so that positioning and timing matter. Can't detect me while I'm crawling (MOVE-6).
 
-- **ENEMY-3 — Contact damage rule (level restart)** 🔲 Backlog `[Alpha]` *(confirmed: 1 heart + level restart)*
+- **ENEMY-3 — Contact damage rule (level restart)** ✅ Done `[Alpha]` *(confirmed: 1 heart + level restart)*
   As a player, when I'm hit by any enemy — Angry Pomeranian, Cat, Robot Vacuum Cleaner, or the Giant Cat boss's fish projectile — I lose 1 heart and the current level restarts from the beginning (heart count carries over, doesn't refill). At 0 hearts, the run ends. Same rule everywhere, no per-enemy or boss exception. **Applies from Alpha** (Alpha's simple enemy uses it); the Beta enemies/boss just reuse the same rule. See STATE-1/STATE-3.
 
 - **ENEMY-4 — Stomp-to-defeat + bounce** ✅ Done `[Alpha]`
@@ -179,14 +179,14 @@ MOVE-7, not here).
 
 ## Epic 6 — STATE: Health, Energy & Game State *(renamed from "Lives & Game State")*
 
-- **STATE-1 — Health system (3 HP hearts)** 🔲 Backlog `[Alpha]` *(rule confirmed)*
+- **STATE-1 — Health system (3 HP hearts)** ✅ Done `[Alpha]` *(rule confirmed)*
   As a player, I want 3 HP shown as hearts, so that I have a visible health buffer. **Confirmed damage rule (applies from Alpha):** getting hit by any enemy costs 1 heart and restarts the current level from the beginning — reduced heart count carries over, doesn't refill on restart. 0 hearts → Game Over (STATE-3). No i-frames (see CHAR-5). Classic-Mario-style, not instant game-over on first contact. See ENEMY-3 for the shared rule text.
 
 - **STATE-2 — Energy system (3 segments)** 🔲 Backlog `[Beta]` *(new)*
   As a player, I want a 3-segment Energy pool spent by Bulldog Rush (3) and High Jump (1), refilled only by Dog Toy pickups (SCORE-3), so that those abilities feel like a resource to manage, not a free spam option. Assumption: no passive regen — flag if wrong.
 
-- **STATE-3 — Game Over** 🔲 Backlog `[Alpha]` *(trigger confirmed)*
-  As a player, I want a clear Game Over when my hearts reach 0, so that I know the run ended. In Alpha, Game Over routes to the same results window (UI-5) that the goal marker uses.
+- **STATE-3 — Game Over** 🔲 Backlog `[Alpha]` *(trigger confirmed; placeholder screen shipped)*
+  As a player, I want a clear Game Over when my hearts reach 0, so that I know the run ended. In Alpha, Game Over routes to the same results window (UI-5) that the goal marker uses. **Partly shipped with STATE-1** (`specs/health-hearts.md`): the 0-hearts trigger works and shows a plain **GAME OVER** overlay with **ENTER** to start a new run — deliberately a placeholder. Stays open until it routes to the real results window (UI-5).
 
 - **STATE-4 — Victory / Ending** 🔲 Backlog `[Beta]` *(scene redefined)*
   As a player, I want a proper ending after defeating the Giant Cat — walking to the bedroom, climbing into bed beside his humans, falling asleep and snoring, then end credits — so that finishing the game feels like a real story beat, not just a screen. (Alpha's "ending" is just the results window at the goal marker; the narrative ending is `[Beta]`.)
@@ -341,9 +341,9 @@ Carried-over assumptions from the redesign:
 ## Summary
 
 **11 Epics, 63 features (58 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
-- ✅ 17 done or already satisfied (12 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/4, SCORE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+- ✅ 19 done or already satisfied (14 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1, STATE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 39 backlog
+- 🔲 37 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
@@ -351,9 +351,9 @@ Carried-over assumptions from the redesign:
 - `[Alpha]` (the vertical slice): MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4,
   SCORE-1/7, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
   (1/2/3/4/5/6/8/9/10/11). Of these, MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1,
-  AUDIO-3, NFR-11, ENEMY-1/4, and the other ✅ NFRs are done — the rest
-  (CHAR-3, ENEMY-3, SCORE-7, STATE-1/3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are
-  the Alpha build backlog.
+  AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, and the other ✅ NFRs are done — the
+  rest (CHAR-3, SCORE-7, STATE-3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
+  Alpha build backlog.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
   LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, and NFR-7.
