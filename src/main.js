@@ -7,6 +7,14 @@ import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physi
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
 import { INITIAL_SCORE, addBone, resetScore, formatScore } from "./state/score.js";
 import {
+  HEART_TEXTURE,
+  HIT_PAUSE_MS,
+  getHeartTextures,
+  isRunOver,
+  loseHeart,
+  resetHearts,
+} from "./state/health.js";
+import {
   CONTACT,
   INITIAL_DIRECTION,
   classifyContact,
@@ -20,6 +28,8 @@ import buldogSheet from "./assets/buldog.png";
 import boneSheet from "./assets/bone.png";
 import bonePickupSfx from "./assets/bone-pickup.wav";
 import enemySheet from "./assets/enemy-cat.png";
+import heartFullImg from "./assets/heart-full.png";
+import heartEmptyImg from "./assets/heart-empty.png";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -41,6 +51,11 @@ class BootScene extends Phaser.Scene {
     // 25x25 cells — a placeholder cat standing in for the Angry Pomeranian,
     // deliberately a bit smaller than the 48x48 bulldog.
     this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
+    // The HP hearts (specs/health-hearts.md). Two separate 32x32 images rather
+    // than a spritesheet: that's how the art was supplied, and swapping an
+    // image's texture is the simplest possible "this heart is gone".
+    this.load.image(HEART_TEXTURE.full, heartFullImg);
+    this.load.image(HEART_TEXTURE.empty, heartEmptyImg);
   }
 
   // create() runs once when the scene starts. This is where we build the
@@ -130,11 +145,47 @@ class BootScene extends Phaser.Scene {
     // TEMPORARY debug counter so we can see collecting works before the real
     // HUD (UI-3) exists. Removed when UI-3 lands — same "temporary until the
     // real UI" idea as the C color key below.
-    this.scoreText = this.add.text(8, 8, formatScore(this.score), {
-      fontFamily: "monospace",
-      fontSize: "12px",
-      color: "#ffffff",
-    });
+    // Sits to the RIGHT of the heart row, vertically centred on it — x 66 is
+    // just past the hearts' drawn edge (specs/health-hearts.md §5).
+    this.scoreText = this.add
+      .text(66, 10, formatScore(this.score), {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#ffffff",
+      })
+      .setOrigin(0, 0.5);
+
+    // --- 3 hearts + the damage rule (specs/health-hearts.md) ---
+
+    // THIS LINE is what makes hearts carry across a level restart: the registry
+    // outlives scene.restart(), a scene field does not. The very first run (and
+    // every run started with ENTER on the GAME OVER screen) finds nothing there
+    // and begins at full health. Hearts never refill any other way.
+    this.hearts = this.registry.get("hearts") ?? resetHearts();
+
+    // Three 32x32 icons across the top-left, at their native size (the art is
+    // drawn at the size we want it on screen — the same rule as the bulldog and
+    // the enemy: no setScale).
+    //
+    // The positions look odd until you know the art: the heart is only drawn
+    // across x 10-22, y 13-22 of its 32x32 cell, so most of the cell is empty
+    // padding. Placing the cells by their centres therefore leaves big gaps and
+    // a dead strip at the top — the numbers below are chosen from where the
+    // heart is actually PAINTED, not where its cell sits: centres 14/33/52, y 9
+    // put the drawn hearts at x 8-58, y 6-15, i.e. tucked into the top-left
+    // corner with roughly one character's gap between them.
+    this.heartIcons = [0, 1, 2].map((index) =>
+      this.add.image(14 + index * 19, 9, HEART_TEXTURE.full),
+    );
+    // Render immediately, so a carried-over count shows correctly on a level
+    // that was restarted by a hit rather than starting fresh.
+    this.renderHearts();
+
+    // Set the moment the player is hit, cleared only by the level restart that
+    // follows. Deliberately NOT in the registry: a restart is exactly when
+    // these should be gone.
+    this.isHurt = false;
+    this.isGameOver = false;
 
     // Collect a bone by touching it — overlap (not collider) so the player
     // passes through rather than bumping into it.
@@ -176,6 +227,10 @@ class BootScene extends Phaser.Scene {
     // the same thing via game.scale.toggleFullscreen() — this is just the
     // keyboard-only equivalent, matching NFR-9).
     this.fullscreenKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
+
+    // ENTER starts a brand-new run from the GAME OVER screen. It does nothing
+    // anywhere else, so it can't clash with the arrows, spacebar or dev keys.
+    this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
 
   // Puts the two Small Bones back in the world: one to the left of the
@@ -255,12 +310,7 @@ class BootScene extends Phaser.Scene {
       // The player's little hop off the enemy's head.
       player.body.setVelocityY(getStompBounceVelocity(JUMP_VELOCITY));
     } else if (contact === CONTACT.HIT) {
-      // TEMPORARY: hearts don't exist yet. The next story (ENEMY-3 / STATE-1)
-      // replaces this flash with the real rule — lose 1 heart and restart the
-      // level — consuming exactly this CONTACT.HIT signal.
-      console.log("Player hit by enemy (hearts land in ENEMY-3)");
-      player.setTint(0xff0000);
-      this.time.delayedCall(200, () => player.setTint(colorToTint(this.currentColor)));
+      this.hurtPlayer();
     }
     // CONTACT.NONE — a corpse still falling away. Nothing to do.
   }
@@ -281,6 +331,78 @@ class BootScene extends Phaser.Scene {
 
     enemy.body.setVelocityX(0);
     enemy.body.setVelocityY(getDeathPopVelocity(JUMP_VELOCITY));
+  }
+
+  // The confirmed damage rule (STATE-1 / ENEMY-3): a hit costs one heart and
+  // restarts the level from the beginning — or ends the run, if that was the
+  // last heart. See specs/health-hearts.md.
+  hurtPlayer() {
+    // The first hit takes the player out of play, and this guard keeps them
+    // there. It is what makes "exactly one heart per contact" true without any
+    // invulnerability window (CHAR-5): the overlap keeps firing while the two
+    // bodies sit on top of each other, and every later call returns here.
+    if (this.isHurt || this.isGameOver) return;
+    this.isHurt = true;
+
+    // Lose the heart FIRST and show it, so the player sees which heart went out
+    // before the screen resets under them.
+    this.hearts = loseHeart(this.hearts);
+    this.registry.set("hearts", this.hearts);
+    this.renderHearts();
+
+    // Freeze and flash. The red tint stands in for the squashed hurt frame,
+    // which is its own story (CHAR-3).
+    this.player.body.setVelocityX(0);
+    this.player.setTint(0xff0000);
+
+    // The beat between the hit and the reset. A scene restart tears down this
+    // scene's clock, so this timer can never fire into the new level.
+    this.time.delayedCall(HIT_PAUSE_MS, () => {
+      if (isRunOver(this.hearts)) {
+        this.showGameOver();
+      } else {
+        // Everything except the heart count comes back fresh: the player at
+        // spawn, the bones, the enemy, and the score — create() rebuilds them
+        // all, which is why bone/score logic needed no changes for this story.
+        this.scene.restart();
+      }
+    });
+  }
+
+  // Paints the heart row from the current count. The full/empty decision itself
+  // lives in the tested rule; this only applies its answer.
+  renderHearts() {
+    getHeartTextures(this.hearts).forEach((texture, index) => {
+      this.heartIcons[index].setTexture(texture);
+    });
+  }
+
+  // PLACEHOLDER Game Over (STATE-3). Drawn as an overlay inside this Scene
+  // rather than as a second Scene on purpose: the real end-of-run screen is the
+  // results window (UI-5, nickname + bones + time), which deletes all of this —
+  // a dozen lines of overlay is the right size for something with that lifespan.
+  showGameOver() {
+    this.isGameOver = true;
+
+    // Depth keeps the overlay above the player, bones and HUD, whatever order
+    // they were added in.
+    this.add.rectangle(160, 120, 320, 240, 0x000000, 0.7).setDepth(10);
+    this.add
+      .text(160, 108, "GAME OVER", {
+        fontFamily: "monospace",
+        fontSize: "24px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setDepth(10);
+    this.add
+      .text(160, 140, "PRESS ENTER", {
+        fontFamily: "monospace",
+        fontSize: "12px",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setDepth(10);
   }
 
   // Runs when the player touches a bone. Phaser passes (player, bone).
@@ -307,6 +429,21 @@ class BootScene extends Phaser.Scene {
   // Phaser so they can be tested without a browser — see
   // src/physics/player.test.js.
   update() {
+    // Both of these gates come first, so nothing below them runs while the
+    // player is out of play — no walking, jumping, patrolling or dev keys.
+    if (this.isGameOver) {
+      if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
+        // Clear the carried-over count: ENTER means a brand-new run, so the
+        // restarted level reads a full set of hearts back out of the registry.
+        this.registry.set("hearts", resetHearts());
+        this.scene.restart();
+      }
+      return;
+    }
+
+    // Out of play for the ~500ms beat between the hit and the level restart.
+    if (this.isHurt) return;
+
     // TEMPORARY: R puts the bones back and resets the score, so collecting can
     // be re-tested without a page reload. JustDown so holding R doesn't respawn
     // every frame.
