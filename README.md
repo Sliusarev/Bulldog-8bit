@@ -5,8 +5,9 @@ way home. Built with **Phaser 3** and **Vite** in plain JavaScript.
 
 ![Buldog standing on the street beside a Small Bone, in the game's 8-bit style](docs/screenshot.png)
 
-> **Status: work in progress.** The engine, the hero, and the core movement feel
-> are playable today; the first full level is being assembled. See
+> **Status: work in progress.** The core loop is playable today — run, jump,
+> collect, stomp, take damage — and the first full level is being assembled
+> around it. See
 > [Current state](#current-state) for exactly what runs and what doesn't.
 
 ## Run it locally
@@ -31,9 +32,10 @@ Other scripts:
 |---|---|
 | ← / → | Run |
 | Space | Jump — press again mid-air for a **double jump** |
+| Enter | Start a new run from the Game Over screen |
 | F (or the on-screen button) | Toggle fullscreen |
 | C | *Dev key:* cycle the bulldog's color (white → black → red) |
-| R | *Dev key:* respawn the bones and reset the score |
+| R | *Dev key:* respawn the bones and the enemy, and reset the score (hearts are untouched) |
 
 The `C` and `R` keys are temporary stand-ins that let features be tested before
 the title screen and HUD exist; they come out when those land.
@@ -50,10 +52,19 @@ the title screen and HUD exist; they come out when those land.
 - Three selectable bulldog colors, applied as a sprite tint.
 - **Small Bone** collectibles with a bobbing animation, an 8-bit pickup blip, and
   a bone-count score.
+- A **patrolling enemy** that turns at the ends of its range and on obstacles,
+  and dies to a **stomp** from above — knocked away Mario-style, arcing up and
+  falling through the floor while the player bounces off its head.
+- **3 hearts**, and the damage rule behind them: touching an enemy costs one
+  heart and **restarts the level from the beginning**, with the reduced count
+  carrying over — never refilled. There are deliberately no invulnerability
+  frames; the restart is what takes you out of danger. At 0 hearts the run ends
+  on a Game Over screen.
 
 **Next up (the Alpha slice)**
-- A stompable patrolling enemy, 3 hearts + Game Over, a level timer, nickname
-  entry on a start screen, and one assembled level ending in a results window.
+- A level timer, a hurt frame for the bulldog, nickname entry on a start screen,
+  and one assembled level ending in a proper results window (which replaces
+  today's placeholder Game Over screen).
 
 **Later (Beta)**
 - Levels 2–3 and their narrative endings, the Energy system and special abilities
@@ -82,12 +93,13 @@ it. Every feature goes through the same loop:
    directly.
 
 **Testing strategy.** Unit tests cover *pure logic only* — movement and jump
-rules, score math, animation-state selection — which is why that logic is
+rules, score math, health/heart rules, enemy patrol and the stomp-vs-hit
+decision, animation-state selection — which is why that logic is
 deliberately pulled out of Phaser's `update()` into plain modules under
 [`src/physics/`](src/physics/) and [`src/state/`](src/state/). The Phaser Scene
 stays a thin adapter: it reads input, calls the tested rules, applies the result.
 Rendering and scene lifecycle aren't unit-tested; whether a jump *feels* right is
-decided by playtesting, not assertions. Currently **44 tests** across 4 files.
+decided by playtesting, not assertions. Currently **89 tests** across 6 files.
 
 **CI.** GitHub Actions runs install → lint → test → build on every push and PR to
 `main` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
@@ -101,8 +113,8 @@ and a standing rule that any new dependency has to be justified before it's adde
 ├─ index.html              # Hosts the game canvas
 ├─ src/
 │  ├─ main.js              # Phaser config + the scene (thin adapter over the rules)
-│  ├─ physics/             # Pure, unit-tested rules: player.js, animation.js
-│  ├─ state/               # Pure, unit-tested state: score.js, color-select.js
+│  ├─ physics/             # Pure, unit-tested rules: player.js, animation.js, enemy.js
+│  ├─ state/               # Pure, unit-tested state: score.js, health.js, color-select.js
 │  └─ assets/              # Sprite sheets and audio
 ├─ specs/                  # One spec per feature (+ _TEMPLATE.md)
 ├─ .github/workflows/ci.yml
