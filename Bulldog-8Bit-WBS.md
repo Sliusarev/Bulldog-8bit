@@ -226,8 +226,8 @@ MOVE-7, not here).
 - **UI-2 — Arcade-style nickname entry** 🔲 Backlog `[Alpha]`
   As a player, I want to type a short nickname before playing (no login), so that my result is labelled as mine. Shown again in the results window (UI-5).
 
-- **UI-3 — In-game HUD** 🔲 Backlog `[Alpha]` *(scope split; timer dropped)*
-  As a player, I want to see my status while playing. **Alpha HUD:** HP hearts and the score (SCORE-8) — two things, one line. The **Energy segments** display is `[Beta]`, and so is the level timer (SCORE-7). **This story also owns the game's typography:** swap the temporary 12px monospace for **Press Start 2P** (free arcade pixel font, SIL OFL) everywhere text appears — HUD, GAME OVER, and later the start screen and results window. Vendored into `src/assets/fonts/` with its licence and loaded by a plain `@font-face` in `index.html` (awaiting `document.fonts.ready` before the first draw) — no npm package, no CDN. Doing it here, once, keeps the typography consistent instead of drifting per screen.
+- **UI-3 — In-game HUD + typography** ✅ Done `[Alpha]` *(scope split; timer dropped)*
+  As a player, I want to see my status while playing. **Alpha HUD:** HP hearts and the score (SCORE-8) — two things, one line. The **Energy segments** display is `[Beta]`, and so is the level timer (SCORE-7). **This story also owns the game's typography:** swap the temporary 12px monospace for **Press Start 2P** (free arcade pixel font, SIL OFL) everywhere text appears — HUD, GAME OVER, and later the start screen and results window. Vendored into `src/assets/fonts/` with its licence and loaded by a plain `@font-face` in `index.html` (awaiting `document.fonts.ready` before the first draw) — no npm package, no CDN. Doing it here, once, keeps the typography consistent instead of drifting per screen. **Built** — see `specs/hud-and-font.md`: hearts top-left, right-anchored `SCORE 000400` top-right, shared `TEXT_STYLE`/`TITLE_TEXT_STYLE` in `src/ui/text-style.js`, and a boot gate (`loadPixelFont()` → `startGame()`) so the first frame is already in the font, with a monospace fallback if it can't load. `UI-1/2/5` inherit these styles.
 
 - **UI-4 — Pause menu** 🔲 Backlog `[Beta]` *(deferred out of Alpha)*
   As a player, I want to pause and resume the game, so that I can step away mid-level. Explicitly removed from the Alpha slice.
@@ -344,9 +344,9 @@ Carried-over assumptions from the redesign:
 ## Summary
 
 **11 Epics, 64 features (59 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
-- ✅ 20 done or already satisfied (15 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+- ✅ 21 done or already satisfied (16 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 37 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 36 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
@@ -355,8 +355,8 @@ Carried-over assumptions from the redesign:
   SCORE-1/8, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
   (1/2/3/4/5/6/8/9/10/11), minus SCORE-7 (the timer, moved to `[Beta]`) and
   plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/4,
-  SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, and the other ✅ NFRs are
-  done — the rest (CHAR-3, STATE-3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
+  SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, UI-3, and the other ✅ NFRs
+  are done — the rest (CHAR-3, STATE-3, LEVEL-6, UI-1/2/5, NFR-1/2/6/8) are the
   Alpha build backlog.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,

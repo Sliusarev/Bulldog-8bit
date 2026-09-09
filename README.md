@@ -54,6 +54,9 @@ the title screen and HUD exist; they come out when those land.
 - **One arcade score, in points** — a bone is +100 and stomping an enemy +200,
   both feeding a single `SCORE`. Deliberately one number rather than two
   metrics: that's what the player is judged by, and what a scoreboard can sort.
+- **A HUD that looks the part** — hearts top-left, a zero-padded `SCORE 000400`
+  top-right, and every character in the game set in **Press Start 2P**, the
+  arcade pixel font (vendored under the SIL OFL — no npm package, no CDN).
 - A **patrolling enemy** that turns at the ends of its range and on obstacles,
   and dies to a **stomp** from above — knocked away Mario-style, arcing up and
   falling through the floor while the player bounces off its head.
@@ -64,9 +67,9 @@ the title screen and HUD exist; they come out when those land.
   on a Game Over screen.
 
 **Next up (the Alpha slice)**
-- A hurt frame for the bulldog, the real HUD (in a proper 8-bit pixel font),
-  nickname entry on a start screen, and one assembled level ending in a results
-  window (which replaces today's placeholder Game Over screen).
+- A hurt frame for the bulldog, nickname entry on a start screen, and one
+  assembled level ending in a results window (which replaces today's
+  placeholder Game Over screen).
 
 **Later (Beta)**
 - Levels 2–3 and their narrative endings, the Energy system and special abilities
@@ -101,7 +104,7 @@ deliberately pulled out of Phaser's `update()` into plain modules under
 [`src/physics/`](src/physics/) and [`src/state/`](src/state/). The Phaser Scene
 stays a thin adapter: it reads input, calls the tested rules, applies the result.
 Rendering and scene lifecycle aren't unit-tested; whether a jump *feels* right is
-decided by playtesting, not assertions. Currently **94 tests** across 6 files.
+decided by playtesting, not assertions. Currently **97 tests** across 6 files.
 
 **CI.** GitHub Actions runs install → lint → test → build on every push and PR to
 `main` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
@@ -117,7 +120,8 @@ and a standing rule that any new dependency has to be justified before it's adde
 │  ├─ main.js              # Phaser config + the scene (thin adapter over the rules)
 │  ├─ physics/             # Pure, unit-tested rules: player.js, animation.js, enemy.js
 │  ├─ state/               # Pure, unit-tested state: score.js, health.js, color-select.js
-│  └─ assets/              # Sprite sheets and audio
+│  ├─ ui/                  # Shared typography (the pixel font + text styles)
+│  └─ assets/              # Sprite sheets, audio, and the vendored font
 ├─ specs/                  # One spec per feature (+ _TEMPLATE.md)
 ├─ .github/workflows/ci.yml
 ├─ CLAUDE.md               # Full game design + engineering conventions
