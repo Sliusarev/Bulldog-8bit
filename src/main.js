@@ -35,6 +35,7 @@ import buldogSheet from "./assets/buldog.png";
 import boneSheet from "./assets/bone.png";
 import bonePickupSfx from "./assets/bone-pickup.wav";
 import enemySheet from "./assets/enemy-cat.png";
+import { TEXT_STYLE, TITLE_TEXT_STYLE, loadPixelFont } from "./ui/text-style.js";
 import heartFullImg from "./assets/heart-full.png";
 import heartEmptyImg from "./assets/heart-empty.png";
 
@@ -152,15 +153,14 @@ class BootScene extends Phaser.Scene {
     // TEMPORARY debug counter so we can see collecting works before the real
     // HUD (UI-3) exists. Removed when UI-3 lands — same "temporary until the
     // real UI" idea as the C color key below.
-    // Sits to the RIGHT of the heart row, vertically centred on it — x 66 is
-    // just past the hearts' drawn edge (specs/health-hearts.md §5).
+    // Top-RIGHT corner, anchored by its right edge 8px from the margin and
+    // vertically centred on the heart row (specs/hud-and-font.md §5). Combined
+    // with the zero-padded format, right-anchoring is what keeps the counter
+    // from twitching as the score grows: the text can't change width, and the
+    // edge it's pinned to never moves.
     this.scoreText = this.add
-      .text(66, 10, formatScore(this.score), {
-        fontFamily: "monospace",
-        fontSize: "12px",
-        color: "#ffffff",
-      })
-      .setOrigin(0, 0.5);
+      .text(312, 10, formatScore(this.score), TEXT_STYLE)
+      .setOrigin(1, 0.5);
 
     // --- 3 hearts + the damage rule (specs/health-hearts.md) ---
 
@@ -398,22 +398,8 @@ class BootScene extends Phaser.Scene {
     // Depth keeps the overlay above the player, bones and HUD, whatever order
     // they were added in.
     this.add.rectangle(160, 120, 320, 240, 0x000000, 0.7).setDepth(10);
-    this.add
-      .text(160, 108, "GAME OVER", {
-        fontFamily: "monospace",
-        fontSize: "24px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5)
-      .setDepth(10);
-    this.add
-      .text(160, 140, "PRESS ENTER", {
-        fontFamily: "monospace",
-        fontSize: "12px",
-        color: "#ffffff",
-      })
-      .setOrigin(0.5)
-      .setDepth(10);
+    this.add.text(160, 108, "GAME OVER", TITLE_TEXT_STYLE).setOrigin(0.5).setDepth(10);
+    this.add.text(160, 140, "PRESS ENTER", TEXT_STYLE).setOrigin(0.5).setDepth(10);
   }
 
   // Runs when the player touches a bone. Phaser passes (player, bone).
@@ -585,14 +571,15 @@ const config = {
   scene: [BootScene],             // The list of scenes in the game.
 };
 
-// This line actually creates and starts the game.
-const game = new Phaser.Game(config);
+// Creates and starts the game, plus the DOM wiring that needs the game object.
+function startGame() {
+  const game = new Phaser.Game(config);
 
-// Wire the HTML fullscreen button (index.html) to Phaser's Scale Manager —
-// the in-game F key (BootScene.update) does the same thing.
-document.getElementById("fullscreen-btn").addEventListener("click", () => {
-  game.scale.toggleFullscreen();
-});
+  // Wire the HTML fullscreen button (index.html) to Phaser's Scale Manager —
+  // the in-game F key (BootScene.update) does the same thing.
+  document.getElementById("fullscreen-btn").addEventListener("click", () => {
+    game.scale.toggleFullscreen();
+  });
 
 // The browser's fullscreen transition doesn't always finish before Phaser's
 // own resize handling reads the new viewport size, which left the canvas
@@ -600,5 +587,15 @@ document.getElementById("fullscreen-btn").addEventListener("click", () => {
 // off-center canvas with mismatched margins once fullscreen settled. Forcing
 // a refresh once the transition is actually done (this event fires after)
 // makes the Scale Manager re-measure #game and re-fit/re-center correctly.
-game.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, () => game.scale.refresh());
-game.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, () => game.scale.refresh());
+  game.scale.on(Phaser.Scale.Events.ENTER_FULLSCREEN, () => game.scale.refresh());
+  game.scale.on(Phaser.Scale.Events.LEAVE_FULLSCREEN, () => game.scale.refresh());
+}
+
+// Wait for the pixel font BEFORE creating the game, so the very first frame is
+// already drawn in it — otherwise the HUD paints in the fallback and then
+// visibly swaps a moment later (specs/hud-and-font.md, AC2).
+//
+// loadPixelFont() never rejects: it resolves false if the font couldn't be
+// loaded, and the game starts anyway with the monospace fallback baked into
+// the text style. A missing font must never mean a missing game (AC3).
+loadPixelFont().then(startGame);

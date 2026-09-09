@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   INITIAL_SCORE,
+  SCORE_DIGITS,
   POINTS_SMALL_BONE,
   POINTS_ENEMY_STOMP,
   addPoints,
@@ -77,16 +78,35 @@ describe("resetScore", () => {
 });
 
 describe("formatScore", () => {
-  // AC1 / AC8 — one score on screen, no bone count and no timer.
-  it("reads SCORE: 0 at the start of a run", () => {
-    expect(formatScore(INITIAL_SCORE)).toBe("SCORE: 0");
+  // SCORE-8 AC1 / AC8 — one score on screen, no bone count and no timer.
+  // UI-3 AC5 — zero-padded to six digits.
+  it("reads SCORE 000000 at the start of a run", () => {
+    expect(formatScore(INITIAL_SCORE)).toBe("SCORE 000000");
   });
 
   it("shows the points total, not a count of anything", () => {
-    expect(formatScore(400)).toBe("SCORE: 400");
+    expect(formatScore(400)).toBe("SCORE 000400");
   });
 
-  // AC8 — the old bone-count label must be gone.
+  it("pads to six digits", () => {
+    expect(formatScore(100)).toBe("SCORE 000100");
+    expect(formatScore(123456)).toBe("SCORE 123456");
+    expect(SCORE_DIGITS).toBe(6);
+  });
+
+  // UI-3 AC6 — this is what keeps the right-anchored HUD counter from
+  // twitching: every possible score formats to the same length.
+  it("always formats to the same length, whatever the score", () => {
+    const lengths = [0, 100, 400, 999999].map((score) => formatScore(score).length);
+    expect(new Set(lengths).size).toBe(1);
+  });
+
+  // A score past the padding widens rather than being truncated.
+  it("does not truncate a score wider than the padding", () => {
+    expect(formatScore(1234567)).toBe("SCORE 1234567");
+  });
+
+  // SCORE-8 AC8 — the old bone-count label must be gone.
   it("never says BONES", () => {
     expect(formatScore(100)).not.toContain("BONES");
   });

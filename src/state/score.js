@@ -39,11 +39,17 @@ export function resetScore() {
   return INITIAL_SCORE;
 }
 
-// How the score reads on screen. Lives here (not inline in the Scene) so the
-// text rule is unit-tested too, and so the real HUD (UI-3) can reuse or replace
-// this one function instead of re-deriving the format.
+// How many digits the score is padded to. Six is the classic arcade counter
+// width, and it is a MINIMUM: a seventh digit would widen the number rather
+// than being truncated (unreachable in Alpha, but it degrades honestly).
+export const SCORE_DIGITS = 6;
+
+// How the score reads on screen: `SCORE 000400`. Lives here (not inline in the
+// Scene) so the text rule is unit-tested too.
+//
+// The zero-padding is not just decoration: every formatted score is the same
+// length, so the HUD's right-anchored counter never changes width and can't
+// twitch as the number grows (UI-3, AC6).
 export function formatScore(score) {
-  // Deliberately unpadded — `SCORE: 0`, not `SCORE: 000000`. A padded arcade
-  // counter is a typography choice, so it belongs with UI-3 and the pixel font.
-  return `SCORE: ${score}`;
+  return `SCORE ${String(score).padStart(SCORE_DIGITS, "0")}`;
 }
