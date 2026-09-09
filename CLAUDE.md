@@ -33,21 +33,23 @@ what ships in Alpha.
 - **One level**, platforming.
 - Movement: run left/right, turn, single jump, and **double jump** (see Core
   mechanics — a stand-in to test the future High Jump feel).
-- **Small Bones** collectibles → score = count of bones collected, with a short
+- **Small Bones** collectibles → **+100 points** each, with a short
   **8-bit pickup blip** (`AUDIO-3` — the one audio exception in Alpha).
-- **Level timer** → total elapsed time, shown as a second metric.
+- **One arcade SCORE in points** — the single number the player is judged by.
+  Bones and defeated enemies both feed it (see Scoring below).
 - **Simple enemy** that patrols and is killed **only by stomp** (jump on top).
 - **3 hearts**, using the game's **confirmed damage rule**: enemy contact costs
   1 heart **and restarts the level from the beginning** (hearts carry over,
   don't refill); no i-frames; **0 hearts → Game Over**.
-- **Goal marker** at the end → **results window** showing nickname, bones
-  collected, and elapsed time.
+- **Goal marker** at the end → **results window** showing nickname and the
+  final score.
 - Carried over: crisp pixel rendering, CI stays green.
 
 **Deferred to Beta (may be cut further):** Levels 2 & 3 and the narrative /
 water-bowl endings · Energy system · Bulldog Rush · High Jump · Fart Attack ·
 Crawl · Large Bone · Dog Toy · Avocado · other enemies (Cat hop behavior, Robot
-Vacuum) · Giant Cat boss · **pause menu** · **online scoreboard + local cache** ·
+Vacuum) · Giant Cat boss · **pause menu** · **level timer / elapsed time** ·
+**online scoreboard + local cache** ·
 music + the full SFX pass (*except* the Small Bone pickup blip, `AUDIO-3`,
 which ships in Alpha) · personality/ability animations (snore, fart, rush) ·
 score persistence across levels.
@@ -63,6 +65,13 @@ score persistence across levels.
 - Palette: classic NES sky blue (#5c94fc) daytime background (shifting to
   sunset/night tones for Levels 2–3), warm browns and greens for ground,
   bright accents for bones/collectibles and the hero.
+- **Typography** (decided, built with `UI-3`): all in-game text uses
+  **Press Start 2P** — the free arcade/NES pixel font, SIL OFL, so it can be
+  redistributed with this repo. It is **vendored** into `src/assets/fonts/`
+  (with its `OFL.txt`) and loaded via a plain `@font-face` in `index.html`,
+  waiting on `document.fonts.ready` before the first scene draws text — **no
+  npm package and no Google Fonts CDN at runtime**, so nothing new joins the
+  stack. Until `UI-3` lands, the temporary HUD text stays 12px monospace.
 - Physics: Phaser Arcade physics with downward gravity. Simple AABB collisions.
 
 ## The hero — Buldog
@@ -146,9 +155,8 @@ score persistence across levels.
 > (hearts) — a translation artifact, not a separate experience-point system.
 > Written here as HP throughout.
 
-- **Small Bone** `[Alpha]` — increases Score. In Alpha the score is simply the
-  **count of Small Bones collected** (shown alongside the level timer).
-- **Large Bone** `[Beta]` — worth double a Small Bone's score, and heals **+1 HP**
+- **Small Bone** `[Alpha]` — **+100 points** (see Scoring below).
+- **Large Bone** `[Beta]` — worth double a Small Bone's score (+200), and heals **+1 HP**
   (one heart), capped at the starting max of 3 — assumption, flag if Large
   Bone should be able to grant a bonus heart beyond 3.
 - **Dog Toy** `[Beta]` — grants +1 Energy.
@@ -156,6 +164,31 @@ score persistence across levels.
   heart. Assumption: this quietly reduces HP without triggering the
   level-restart rule (that's specifically for enemy/boss contact) — flag if
   Avocado damage should restart the level too.
+
+## Scoring
+
+**One number, in points.** The player's result is a **single arcade SCORE** —
+never two competing metrics. Everything that rewards skill feeds the same
+number, so the results window and the scoreboard can rank runs by one value
+without converting anything.
+
+Alpha's point values:
+
+| Action | Points |
+|---|---|
+| Collect a **Small Bone** | **+100** |
+| Defeat an enemy by **stomping** it | **+200** |
+
+Rules that follow from that:
+- The score is **not** a count of anything — `SCORE: 700` is the number shown,
+  not "7 bones".
+- Score **resets to 0 when the level restarts** after a hit (the bones respawn,
+  so keeping it would double-count them). Hearts are the only thing that
+  carries across a restart.
+- `[Beta]` additions plug into the same number rather than adding a metric:
+  Large Bone (+200), and a possible **speed bonus** if the level timer comes
+  back (it is `[Beta]`, deliberately cut from Alpha to keep one number on
+  screen).
 
 ## Enemies
 
@@ -224,10 +257,10 @@ unaffected by it:
 - **Arcade-style nickname entry.** `[Alpha]` On the start screen the player types a short
   nickname (like a classic arcade cabinet). No account or login is required.
 - **End-of-level results window.** `[Alpha]` When the player reaches the goal
-  marker (or hits Game Over), show a simple window with the **nickname**, the
-  **number of bones collected**, and the **total elapsed time** for the level.
-  This is the Alpha stand-in for the fuller scoreboard below — local only, no
-  backend.
+  marker (or hits Game Over), show a simple window with the **nickname** and the
+  **final score**. This is the Alpha stand-in for the fuller scoreboard below —
+  local only, no backend. One number, so it lines up with the scoreboard's
+  sorting without any conversion.
 - **Scoreboard (online).** `[Beta]` At the end, show a high-score board listing
   nicknames and their scores, sorted high to low. Scores are stored **online**
   in a shared table via a Backend-as-a-Service (recommended: Supabase; Firebase
@@ -442,11 +475,10 @@ rough suggested order, not the source of truth.
 2. Placeholder ground and player rectangle; move and jump. ✅ (done)
 3. Bulldog art + color select (idle/run/jump art ✅ done via `CHAR-2`; color select ✅ done; the `CHAR-3` **hurt** frame is still to do).
 4. Add **double jump** (stand-in for High Jump testing).
-5. Add **Small Bone** collectibles and a bone-count score.
+5. Add **Small Bone** collectibles and the points score.
 6. Add the **simple stompable enemy** and the stomp mechanic.
 7. Add **3 hearts** (confirmed rule: hit = 1 heart + level restart, no i-frames) and Game Over.
-8. Add the **level timer** (elapsed time).
-9. Add **nickname entry** + a minimal start screen (with color select).
+8. Add **nickname entry** + a minimal start screen (with color select).
 10. Assemble the **single level** with a **goal marker** → **results window**
     (nickname + bones + time).
 
