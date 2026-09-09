@@ -1,7 +1,9 @@
 # Feature Spec: Small Bones + bone-count score (`SCORE-1`)
 
 > **Scope:** `[Alpha]`. WBS: `SCORE-1`. ClickUp: `869e4tg13`. Related:
-> `SCORE-7` (level timer — the other metric shown beside the score),
+> `SCORE-8` (**the scoring rework that supersedes this spec's "score = count of
+> bones" rule** — a Small Bone is now worth **+100 points**; see
+> `specs/points-score.md`),
 > `UI-3` (in-game HUD — displays the score live), `UI-5` (results window),
 > `LEVEL-6` (the Alpha level — final bone placement).
 > `SCORE-2` (Large Bone) and `SCORE-6` (cross-level persistence) are `[Beta]`.
@@ -16,7 +18,7 @@
 ## 1. Summary
 Place **Small Bone** collectibles in the level. When the bulldog touches one,
 it's collected (with a small pickup sound) and the **score** goes up. In Alpha
-the score is simply the **count of Small Bones collected**.
+the score is simply the **count of Small Bones collected**. *(Superseded: a bone is now **+100 points** — see `specs/points-score.md` / `SCORE-8`. Everything else in this spec still stands.)*
 
 ## 2. User story
 As a **player**, I want to collect Small Bones that raise my score, so that
@@ -153,7 +155,8 @@ As a **player**, I want to collect Small Bones that raise my score, so that
   overlap is player-vs-bones.
 - **Feeds `UI-3`** (HUD shows the live score), **`UI-5`** (results window shows
   the final score on both Game Over and level-complete), and pairs with
-  **`SCORE-7`** (timer) as Alpha's two metrics.
+  **`SCORE-7`** (timer) as Alpha's two metrics. *(Superseded — Alpha now has a
+  single points score, `SCORE-8`; the timer moved to `[Beta]`.)*
 - **Placement finalized by `LEVEL-6`**.
 - **Planning-doc change:** moving *basic pickup SFX* into Alpha means updating
   the WBS (AUDIO epic is currently all `[Beta]`) and `CLAUDE.md`'s Alpha list —

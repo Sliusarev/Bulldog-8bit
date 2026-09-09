@@ -50,8 +50,10 @@ the title screen and HUD exist; they come out when those land.
 - Animated hero sprite — idle / run / jump — with facing that holds while
   standing still or jumping straight up.
 - Three selectable bulldog colors, applied as a sprite tint.
-- **Small Bone** collectibles with a bobbing animation, an 8-bit pickup blip, and
-  a bone-count score.
+- **Small Bone** collectibles with a bobbing animation and an 8-bit pickup blip.
+- **One arcade score, in points** — a bone is +100 and stomping an enemy +200,
+  both feeding a single `SCORE`. Deliberately one number rather than two
+  metrics: that's what the player is judged by, and what a scoreboard can sort.
 - A **patrolling enemy** that turns at the ends of its range and on obstacles,
   and dies to a **stomp** from above — knocked away Mario-style, arcing up and
   falling through the floor while the player bounces off its head.
@@ -62,9 +64,9 @@ the title screen and HUD exist; they come out when those land.
   on a Game Over screen.
 
 **Next up (the Alpha slice)**
-- A level timer, a hurt frame for the bulldog, nickname entry on a start screen,
-  and one assembled level ending in a proper results window (which replaces
-  today's placeholder Game Over screen).
+- A hurt frame for the bulldog, the real HUD (in a proper 8-bit pixel font),
+  nickname entry on a start screen, and one assembled level ending in a results
+  window (which replaces today's placeholder Game Over screen).
 
 **Later (Beta)**
 - Levels 2–3 and their narrative endings, the Energy system and special abilities
@@ -93,13 +95,13 @@ it. Every feature goes through the same loop:
    directly.
 
 **Testing strategy.** Unit tests cover *pure logic only* — movement and jump
-rules, score math, health/heart rules, enemy patrol and the stomp-vs-hit
-decision, animation-state selection — which is why that logic is
+rules, scoring, health/heart rules, enemy patrol and the stomp-vs-hit decision,
+animation-state selection — which is why that logic is
 deliberately pulled out of Phaser's `update()` into plain modules under
 [`src/physics/`](src/physics/) and [`src/state/`](src/state/). The Phaser Scene
 stays a thin adapter: it reads input, calls the tested rules, applies the result.
 Rendering and scene lifecycle aren't unit-tested; whether a jump *feels* right is
-decided by playtesting, not assertions. Currently **89 tests** across 6 files.
+decided by playtesting, not assertions. Currently **94 tests** across 6 files.
 
 **CI.** GitHub Actions runs install → lint → test → build on every push and PR to
 `main` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).

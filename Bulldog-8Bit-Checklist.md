@@ -75,10 +75,10 @@ Physics behavior + tuned values are documented in `specs/player-physics.md`.
 **Goal:** one playable level that proves the whole core loop: start screen
 (nickname + color) → run/jump/double-jump through a level → collect Small Bones
 → stomp a simple enemy → survive on 3 hearts → reach the goal marker → see a
-results window with your nickname, bones collected, and elapsed time.
+results window with your nickname and your final score.
 
 Covers WBS `[Alpha]` features: `CHAR-2/3` (core art + hurt), `MOVE-7` (double
-jump), `SCORE-1` (Small Bone) + `SCORE-7` (timer), `ENEMY-1/3/4` (simple enemy +
+jump), `SCORE-1` (Small Bone) + `SCORE-8` (the points score), `ENEMY-1/3/4` (simple enemy +
 stomp + damage rule), `STATE-1/3` (3 hearts, Game Over), `UI-1/2/3/5` (start
 screen, nickname, HUD, results window), and `LEVEL-6` (the Alpha level).
 `CHAR-4` (color select) is already done.
@@ -95,12 +95,12 @@ refill); no i-frames; 0 hearts → Game Over.
 - [x] 📄 **Small Bones + bone-count score** (`SCORE-1`): collectible animated bones; score = number collected. Spec `specs/small-bones.md`; pure score math unit-tested in `src/state/score.js`; touch-to-collect via overlap + pickup blip (`AUDIO-3`, the one Alpha audio exception); score mirrored into the Phaser registry for `UI-3`/`UI-5`. Two bones placed provisionally (final layout with `LEVEL-6`); temporary debug counter + `R` refresh key until `UI-3` lands.
 - [x] 📄 **Simple enemy + stomp** (`ENEMY-1` trimmed + `ENEMY-4`): a patrolling enemy defeated by a stomp from above (with a small bounce); side contact triggers the damage rule below. Spec `specs/simple-enemy-stomp.md`; patrol + "stomp vs. side-hit" rules unit-tested in `src/physics/enemy.js` (every value derived from the player's own `WALK_SPEED`/`JUMP_VELOCITY`). The enemy turns at the ends of its range **and** on solid obstacles; a stomp knocks it away Mario-style (pops up 15% of a jump, falls through the ground, off-screen). Placeholder cat art. **Side contact is only *classified* as a hit for now** (temporary red flash) — the heart loss + level restart lands with `ENEMY-3` in the next story.
 - [x] 📄 **3 hearts + level restart** (`STATE-1`, `ENEMY-3`) — **`STATE-3` only as a placeholder**: 3 HP shown as hearts in the HUD; a hit costs 1 heart **and restarts the level from the beginning** (hearts carry over in Phaser's registry, no i-frames, ~500 ms flash first); 0 hearts → a plain **GAME OVER** overlay, **ENTER** starts a new run. Spec `specs/health-hearts.md`; HP math and the "restart vs. Game Over" decision unit-tested in `src/state/health.js`. **`STATE-3` is not finished** — the real end-of-run screen is the results window (`UI-5`), which replaces this overlay.
-- [ ] 📄 **Level timer** (`SCORE-7`): track elapsed time for the level; show it live and pass it to the results window. Unit-test the formatting/accumulation logic.
+- [x] 📄 **One arcade score in points** (`SCORE-8`): Small Bone +100, stomping an enemy +200; a single `SCORE:` in the HUD, reset on a level restart (hearts carry over). Spec `specs/points-score.md`; point math unit-tested in `src/state/score.js` (which was extended, not replaced — `addBone` became `addPoints`). *(Replaces the bone-count score. The **level timer** `SCORE-7` was moved to Beta — two metrics made the player's result ambiguous and a scoreboard unsortable.)*
 - [ ] 📄 **Start screen + nickname entry** (`UI-1` minimal + `UI-2`): a simple pre-level screen to type a nickname and pick a color (drives the existing `CHAR-4` module), then start.
-- [ ] **HUD** (`UI-3` Alpha subset): show HP hearts, bone count, and the timer during play. (No Energy display in Alpha.)
-- [ ] 📄 **Goal marker + results window** (`LEVEL-6` end + `UI-5`): a goal marker ends the level and opens a simple window showing nickname, bones collected, and elapsed time (same window on Game Over).
+- [ ] **HUD** (`UI-3` Alpha subset): show HP hearts and the score during play (no Energy, no timer), **and switch all text to the Press Start 2P pixel font** (vendored, SIL OFL, `@font-face` — no npm package, no CDN).
+- [ ] 📄 **Goal marker + results window** (`LEVEL-6` end + `UI-5`): a goal marker ends the level and opens a simple window showing the nickname and the final score (same window on Game Over).
 - [ ] **Assemble the Alpha level** (`LEVEL-6`): lay out one platforming level (hardcoded first, or Tiled) populated with bones, the simple enemy, and the goal marker. Minimal flow: start screen → level → results window.
-- [ ] Test: win the level (reach goal → results) AND lose it (take a hit → level restart, 0 hearts → Game Over → results) both work; unit-test bone/HP/timer math and the stomp-vs-hit rule; run the basic test checklist.
+- [ ] Test: win the level (reach goal → results) AND lose it (take a hit → level restart, 0 hearts → Game Over → results) both work; unit-test score/HP math and the stomp-vs-hit rule; run the basic test checklist.
 - [ ] Commit + push; deploy the Alpha slice (`NFR-8`).
 
 **Alpha done when:** enter a nickname → pick a color → play the one level —

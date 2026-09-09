@@ -151,11 +151,11 @@ MOVE-7, not here).
 
 ## Epic 5 — SCORE: Collectibles & Scoring
 
-- **SCORE-1 — Small Bone** ✅ Done `[Alpha]`
-  As a player, I want to collect Small Bones that raise my score, so that exploring is rewarded. **In Alpha the score is simply the count of Small Bones collected** (shown next to the level timer, SCORE-7, in the results window, UI-5). Spec: `specs/small-bones.md`. Built: animated bone (`src/assets/bone.png`), touch-to-collect via overlap, pickup blip (AUDIO-3), pure score rules in `src/state/score.js` (unit-tested), score mirrored into the Phaser registry for UI-3/UI-5. Two bones placed provisionally (final layout with LEVEL-6); temporary debug counter + `R` refresh key until UI-3 lands.
+- **SCORE-1 — Small Bone** ✅ Done `[Alpha]` *(scoring reworked — see SCORE-8)*
+  As a player, I want to collect Small Bones that raise my score, so that exploring is rewarded. **A Small Bone is worth +100 points** (SCORE-8; it was originally a bare count of bones collected, changed because two competing metrics confused the player's "result"). Spec: `specs/small-bones.md`. Built: animated bone (`src/assets/bone.png`), touch-to-collect via overlap, pickup blip (AUDIO-3), pure score rules in `src/state/score.js` (unit-tested), score mirrored into the Phaser registry for UI-3/UI-5. Two bones placed provisionally (final layout with LEVEL-6); temporary debug counter + `R` refresh key until UI-3 lands.
 
 - **SCORE-2 — Large Bone** 🔲 Backlog `[Beta]` *(updated: "+1 XP" confirmed to mean +1 HP)*
-  As a player, I want Large Bones worth double a Small Bone's score and healing +1 HP (one heart), so that finding the rarer pickup feels more valuable. Assumption: healing is capped at the starting max of 3 hearts — flag if it should grant a bonus heart beyond that.
+  As a player, I want Large Bones worth double a Small Bone's score (+200 points, SCORE-8) and healing +1 HP (one heart), so that finding the rarer pickup feels more valuable. Assumption: healing is capped at the starting max of 3 hearts — flag if it should grant a bonus heart beyond that.
 
 - **SCORE-2-OLD — Extra life at 100 bones** ✂️ Cut
   The new design has no "extra life" milestone or general "lives" concept — replaced by the HP-heart system (STATE-1) and the Score/Energy resources.
@@ -172,8 +172,11 @@ MOVE-7, not here).
 - **SCORE-6 — Score persists across levels** 🔲 Backlog `[Beta]`
   As a player, I want my score to carry over from Level 1 to Level 2 to Level 3, so that the whole run feels connected. `[Beta]` — Alpha is a single level, so there's nothing to persist across yet.
 
-- **SCORE-7 — Level timer / elapsed time** 🔲 Backlog `[Alpha]` *(new)*
-  As a player, I want to see the total time elapsed for the level, so that I have a second performance metric alongside the bone count. Shown live in the HUD (UI-3) and summarized in the results window (UI-5).
+- **SCORE-7 — Level timer / elapsed time** 🔲 Backlog `[Beta]` *(moved out of Alpha)*
+  As a player, I want to see the total time elapsed for the level, so that I have a sense of pace. **Deferred out of Alpha by Artem**, along with its draft spec: a live timer made the player's *result* two competing numbers (bones AND time), which is confusing on screen and unsortable on a scoreboard. Alpha ships one arcade score instead (SCORE-8). If time comes back in Beta, it plugs into that one number as a **speed bonus** rather than as a second metric.
+
+- **SCORE-8 — One arcade score, in points** ✅ Done `[Alpha]` *(replaced the bone-count score)*
+  As a player, I want a single SCORE in points that everything I do well feeds into, so that I know exactly what my result is and can compare it with other players. Small Bone = **+100**, stomping an enemy = **+200**. The score is a points total, not a count of anything; it resets to 0 when a hit restarts the level (bones respawn), while hearts carry over. Beta additions (Large Bone +200, a possible speed bonus) extend this same number instead of adding another metric. Spec: `specs/points-score.md`. Built: point constants + a general `addPoints` rule in `src/state/score.js` (unit-tested), a single `awardPoints()` seam in the Scene feeding both the HUD text and the registry.
 
 ---
 
@@ -223,14 +226,14 @@ MOVE-7, not here).
 - **UI-2 — Arcade-style nickname entry** 🔲 Backlog `[Alpha]`
   As a player, I want to type a short nickname before playing (no login), so that my result is labelled as mine. Shown again in the results window (UI-5).
 
-- **UI-3 — In-game HUD** 🔲 Backlog `[Alpha]` *(scope split)*
-  As a player, I want to see my status while playing. **Alpha HUD:** HP hearts, bone count (score), and the level timer (SCORE-7). The **Energy segments** display is `[Beta]` (no Energy in Alpha).
+- **UI-3 — In-game HUD** 🔲 Backlog `[Alpha]` *(scope split; timer dropped)*
+  As a player, I want to see my status while playing. **Alpha HUD:** HP hearts and the score (SCORE-8) — two things, one line. The **Energy segments** display is `[Beta]`, and so is the level timer (SCORE-7). **This story also owns the game's typography:** swap the temporary 12px monospace for **Press Start 2P** (free arcade pixel font, SIL OFL) everywhere text appears — HUD, GAME OVER, and later the start screen and results window. Vendored into `src/assets/fonts/` with its licence and loaded by a plain `@font-face` in `index.html` (awaiting `document.fonts.ready` before the first draw) — no npm package, no CDN. Doing it here, once, keeps the typography consistent instead of drifting per screen.
 
 - **UI-4 — Pause menu** 🔲 Backlog `[Beta]` *(deferred out of Alpha)*
   As a player, I want to pause and resume the game, so that I can step away mid-level. Explicitly removed from the Alpha slice.
 
-- **UI-5 — End-of-level results window** 🔲 Backlog `[Alpha]` *(new)*
-  As a player, I want a simple window at the end of the level showing my **nickname**, the **number of bones collected**, and the **total elapsed time**, so that I get closure on my run. Opened by both the goal marker (LEVEL-6) and Game Over (STATE-3). Local only — no backend. This is Alpha's stand-in for the online scoreboard (BOARD-1).
+- **UI-5 — End-of-level results window** 🔲 Backlog `[Alpha]` *(simplified: nickname + score)*
+  As a player, I want a simple window at the end of the level showing my **nickname** and my **final score** (SCORE-8), so that I get closure on my run. One number, so it needs no conversion to become a scoreboard row later. Opened by both the goal marker (LEVEL-6) and Game Over (STATE-3). Local only — no backend. This is Alpha's stand-in for the online scoreboard (BOARD-1).
 
 ---
 
@@ -340,8 +343,8 @@ Carried-over assumptions from the redesign:
 
 ## Summary
 
-**11 Epics, 63 features (58 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
-- ✅ 19 done or already satisfied (14 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1, STATE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+**11 Epics, 64 features (59 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
+- ✅ 20 done or already satisfied (15 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
 - 🔲 37 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
@@ -349,13 +352,15 @@ Carried-over assumptions from the redesign:
 
 **Scope split (active features):**
 - `[Alpha]` (the vertical slice): MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4,
-  SCORE-1/7, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
-  (1/2/3/4/5/6/8/9/10/11). Of these, MOVE-1/2/3/7, CHAR-1/2/4, SCORE-1,
-  AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, and the other ✅ NFRs are done — the
-  rest (CHAR-3, SCORE-7, STATE-3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
+  SCORE-1/8, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
+  (1/2/3/4/5/6/8/9/10/11), minus SCORE-7 (the timer, moved to `[Beta]`) and
+  plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/4,
+  SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, and the other ✅ NFRs are
+  done — the rest (CHAR-3, STATE-3, LEVEL-6, UI-1/2/3/5, NFR-1/2/6/8) are the
   Alpha build backlog.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
-  LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, and NFR-7.
+  LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, NFR-7, and now SCORE-7
+  (the level timer).
 
 Ready for your Epic-by-Epic review.

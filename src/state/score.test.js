@@ -1,57 +1,93 @@
 // Unit tests for the pure score rules. These map directly to the acceptance
-// criteria in specs/small-bones.md — each `it` below is one checkbox from
+// criteria in specs/points-score.md — each `it` below is one checkbox from
 // Section 4 of that spec (the ones marked 🧪 in its test plan).
 import { describe, expect, it } from "vitest";
 import {
   INITIAL_SCORE,
-  POINTS_PER_SMALL_BONE,
-  addBone,
+  POINTS_SMALL_BONE,
+  POINTS_ENEMY_STOMP,
+  addPoints,
   resetScore,
   formatScore,
 } from "./score.js";
 
 describe("INITIAL_SCORE", () => {
-  it("starts at 0 before any bone is collected", () => {
+  // AC1 — a run starts at zero.
+  it("starts at 0 before anything has been scored", () => {
     expect(INITIAL_SCORE).toBe(0);
   });
 });
 
-describe("addBone", () => {
-  it("collecting the first bone makes the score 1", () => {
-    expect(addBone(INITIAL_SCORE)).toBe(1);
+describe("point values", () => {
+  // AC2 — a Small Bone is worth exactly 100.
+  it("a Small Bone is worth 100", () => {
+    expect(POINTS_SMALL_BONE).toBe(100);
   });
 
-  it("collecting both bones makes the score 2", () => {
-    expect(addBone(addBone(INITIAL_SCORE))).toBe(2);
+  // AC3 — a stomped enemy is worth exactly 200.
+  it("a stomped enemy is worth 200", () => {
+    expect(POINTS_ENEMY_STOMP).toBe(200);
   });
 
-  it("adds one point from any starting count", () => {
-    expect(addBone(5)).toBe(6);
-    expect(addBone(41)).toBe(42);
+  // The 2:1 ratio is the design, not a coincidence: risk should pay better
+  // than collecting. This test is what would catch a retune that breaks it.
+  it("an enemy is worth exactly two bones", () => {
+    expect(POINTS_ENEMY_STOMP).toBe(POINTS_SMALL_BONE * 2);
+  });
+});
+
+describe("addPoints", () => {
+  // AC2 — collecting the first bone.
+  it("collecting one bone scores 100", () => {
+    expect(addPoints(INITIAL_SCORE, POINTS_SMALL_BONE)).toBe(100);
   });
 
-  it("each Small Bone is worth exactly one point", () => {
-    expect(POINTS_PER_SMALL_BONE).toBe(1);
-    expect(addBone(0) - 0).toBe(POINTS_PER_SMALL_BONE);
+  // AC3 — the first stomp.
+  it("stomping one enemy scores 200", () => {
+    expect(addPoints(INITIAL_SCORE, POINTS_ENEMY_STOMP)).toBe(200);
+  });
+
+  // AC4 — the two sources add into ONE number, which is the whole point of
+  // SCORE-8: both bones plus the enemy is 400, not "2 bones and 1 kill".
+  it("bones and stomps add into a single total", () => {
+    let score = INITIAL_SCORE;
+    score = addPoints(score, POINTS_SMALL_BONE);
+    score = addPoints(score, POINTS_SMALL_BONE);
+    score = addPoints(score, POINTS_ENEMY_STOMP);
+    expect(score).toBe(400);
+  });
+
+  it("adds from any starting total", () => {
+    expect(addPoints(500, POINTS_SMALL_BONE)).toBe(600);
+    expect(addPoints(1000, POINTS_ENEMY_STOMP)).toBe(1200);
   });
 
   it("does not mutate the score it was given (stays a pure rule)", () => {
-    const score = 3;
-    addBone(score);
-    expect(score).toBe(3);
+    const score = 300;
+    addPoints(score, POINTS_SMALL_BONE);
+    expect(score).toBe(300);
   });
 });
 
 describe("resetScore", () => {
-  it("goes back to 0 (used by the refresh dev key)", () => {
+  // AC5 — a level restart (and the R dev key) puts the score back to zero.
+  it("goes back to the starting score", () => {
     expect(resetScore()).toBe(INITIAL_SCORE);
-    expect(resetScore()).toBe(0);
   });
 });
 
 describe("formatScore", () => {
-  it("reads as BONES: <count> for the debug counter", () => {
-    expect(formatScore(0)).toBe("BONES: 0");
-    expect(formatScore(2)).toBe("BONES: 2");
+  // AC1 / AC8 — one score on screen, no bone count and no timer.
+  it("reads SCORE: 0 at the start of a run", () => {
+    expect(formatScore(INITIAL_SCORE)).toBe("SCORE: 0");
+  });
+
+  it("shows the points total, not a count of anything", () => {
+    expect(formatScore(400)).toBe("SCORE: 400");
+  });
+
+  // AC8 — the old bone-count label must be gone.
+  it("never says BONES", () => {
+    expect(formatScore(100)).not.toContain("BONES");
   });
 });

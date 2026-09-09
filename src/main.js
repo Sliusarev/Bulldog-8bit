@@ -5,7 +5,14 @@ import Phaser from "phaser";
 import { getWalkVelocityX, canJump, nextAirJumpsUsed, JUMP_VELOCITY } from "./physics/player.js";
 import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
-import { INITIAL_SCORE, addBone, resetScore, formatScore } from "./state/score.js";
+import {
+  INITIAL_SCORE,
+  POINTS_SMALL_BONE,
+  POINTS_ENEMY_STOMP,
+  addPoints,
+  resetScore,
+  formatScore,
+} from "./state/score.js";
 import {
   HEART_TEXTURE,
   HIT_PAUSE_MS,
@@ -309,6 +316,10 @@ class BootScene extends Phaser.Scene {
       this.killEnemy(enemy);
       // The player's little hop off the enemy's head.
       player.body.setVelocityY(getStompBounceVelocity(JUMP_VELOCITY));
+      // Worth double a bone (SCORE-8): risk should pay better than collecting.
+      // This can't pay out twice for one enemy — killEnemy marks it dead in
+      // this same frame, so any further overlap classifies as NONE.
+      this.awardPoints(POINTS_ENEMY_STOMP);
     } else if (contact === CONTACT.HIT) {
       this.hurtPlayer();
     }
@@ -414,12 +425,16 @@ class BootScene extends Phaser.Scene {
 
     this.sound.play("bone-pickup");
 
-    // Ask the pure rule for the new score, then reflect it on screen.
-    this.score = addBone(this.score);
-    this.scoreText.setText(formatScore(this.score));
+    this.awardPoints(POINTS_SMALL_BONE);
+  }
 
-    // Mirror into Phaser's registry so the future HUD (UI-3) and results
-    // window (UI-5) can read the score without reaching into this Scene.
+  // The one place points are added: ask the pure rule for the new total, show
+  // it, and mirror it into Phaser's registry so the future HUD (UI-3) and
+  // results window (UI-5) can read the score without reaching into this Scene.
+  // Every scoring event goes through here, so UI-3 has a single seam to replace.
+  awardPoints(points) {
+    this.score = addPoints(this.score, points);
+    this.scoreText.setText(formatScore(this.score));
     this.registry.set("score", this.score);
   }
 
