@@ -106,7 +106,11 @@ class BootScene extends Phaser.Scene {
     // confuses Arcade Physics's offset math (it assumes scale 1).
     // Color comes from the color-select rules (see specs/color-select.md),
     // applied as a tint — the same mechanism as the rectangle's fillColor.
-    this.currentColor = DEFAULT_COLOR;
+    // Read back from the registry for the same reason hearts are (see below):
+    // the registry outlives scene.restart(), a scene field does not — without
+    // this, every hit would snap the hero back to the default white. Once the
+    // start screen (UI-1/UI-2) picks the color, it writes the same key.
+    this.currentColor = this.registry.get("color") ?? DEFAULT_COLOR;
     this.facing = DEFAULT_FACING;
     // How many mid-air jumps have been used since last landing (MOVE-7 double
     // jump — see specs/double-jump.md). Reset to 0 whenever grounded.
@@ -521,6 +525,7 @@ class BootScene extends Phaser.Scene {
     // one frame only, so holding C doesn't strobe through colors).
     if (Phaser.Input.Keyboard.JustDown(this.colorKey)) {
       this.currentColor = nextColor(this.currentColor);
+      this.registry.set("color", this.currentColor);
       this.player.setTint(colorToTint(this.currentColor));
     }
 

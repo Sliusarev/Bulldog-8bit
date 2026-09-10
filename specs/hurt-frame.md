@@ -248,3 +248,17 @@ AC7's no-regression pass, and the tuning questions).
    above: Phaser's row-major numbering only shifts if the column count changes.
 3. `HURT_FLASH_INTERVAL_MS = 83` is a starting value, tuned in playtest (§10).
 4. `HIT_PAUSE_MS` stays 500ms.
+
+## Playtest fixes (round 1)
+
+- **Hero color reset to white after a hit.** Reported during the CHAR-3
+  playtest: picking black or red and then taking a hit brought the bulldog back
+  as white. Not a blink bug — the color lived only in a Scene field, and
+  `create()` re-assigned `DEFAULT_COLOR` after `scene.restart()`. Fixed the same
+  way hearts already survive a restart (`specs/health-hearts.md`): the selected
+  color is written to `this.registry` when it changes and read back in
+  `create()`. Pre-existing since `CHAR-4` — the restart rule simply had nothing
+  worth testing against until now. The start screen (`UI-1`/`UI-2`) will write
+  the same `"color"` registry key instead of the temporary `C` dev key.
+  *(Color deliberately persists across a Game Over → ENTER new run too: it's a
+  player preference, not run state like hearts or score.)*
