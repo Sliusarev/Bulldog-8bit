@@ -358,7 +358,10 @@ directly** — the PR + Artem's approval is the gate.
    writes the **technical design** (see below) and Artem approves it.
    **Implementation does not start until the design is approved.**
 4. **Claude implements (locally).** Built on a feature branch, with unit tests
-   and a green local `lint` / `test` / `build`.
+   and a green local `lint` / `test` / `build`. Pure logic in `src/physics/` and
+   `src/state/` is written **test-first** (see Testing strategy → Test-first).
+   4.5. **Claude self-reviews.** Claude runs `/code-review` over the change and
+   acts on the findings *before* handing it over. Skipped for docs-only changes.
 5. **Artem reviews & tests the results.** Artem runs it locally (dev server /
    playtest) and reviews the behavior.
 6. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
@@ -422,6 +425,46 @@ written, not after.
   testable logic — e.g. `specs/player-physics.md` → `src/physics/player.test.js`.
 - Manual playtesting still decides whether something *feels* right (jump
   height, walk speed) — tests check the rules, not the feel.
+
+#### Test-first (TDD) — where it applies, and where it deliberately doesn't
+
+Tests here have historically been written *after* the code they cover, by the
+same author, from the same mental model. That makes them agree with the
+implementation by construction: if a requirement was misread, the code and the
+test are wrong together and stay green. A mutation check (deliberately breaking
+the logic to see whether the suite notices) caught 12 of 13 injected bugs, so
+the tests themselves are sound — the gap is *where they come from*, not how
+carefully they're written.
+
+So, for **pure logic** — `src/physics/` and `src/state/` — write the test
+**first**, from the spec's acceptance criteria, and **watch it fail** before
+writing the implementation. A test derived from the requirement can disagree
+with the code; a test derived from the code cannot.
+
+**This does not apply to the Phaser Scene (`src/main.js`).** Scene code can't
+be unit tested outside a browser/canvas (see the first bullet above), so there
+is no failing test to write first. Scene changes are verified by manual
+playtest, exactly as before. If a rule inside the Scene *could* be a pure
+function, that's a signal to extract it into `src/physics/` or `src/state/` and
+TDD it there — not a reason to relax the rule.
+
+> The `superpowers` plugin's `test-driven-development` skill states an
+> exception-free "no production code without a failing test first". **Scoped to
+> pure logic, that rule holds here; applied to the Scene it is unachievable.**
+> This section is what wins for this repo.
+
+#### Code review before handoff (step 4.5 of the delivery flow)
+
+Before handing a feature to Artem for review (step 5), run the built-in
+`/code-review` over the change and act on what it finds. Skip it for
+docs-only changes.
+
+**`/code-review` is the single review path in this project.** The
+`code-review` marketplace plugin and `superpowers`' `requesting-code-review` /
+`receiving-code-review` skills were deliberately removed/disabled rather than
+left alongside it — the built-in one is the only one that reviews a *local*
+diff (so it fits the small-step TDD rhythm, before a PR exists) and can still
+comment on a PR later with `--comment`. Don't reintroduce a second one.
 
 ### Code style / linting
 - ESLint (flat config, `eslint.config.js`) catches baseline issues (unused
