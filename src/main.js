@@ -11,7 +11,7 @@ import {
   nextFacing,
   HURT_FLASH_INTERVAL_MS,
 } from "./physics/animation.js";
-import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
+import { DEFAULT_COLOR, colorToTint } from "./state/color-select.js";
 import {
   INITIAL_SCORE,
   POINTS_SMALL_BONE,
@@ -45,6 +45,7 @@ import enemySheet from "./assets/enemy-cat.png";
 import { TEXT_STYLE, TITLE_TEXT_STYLE, loadPixelFont } from "./ui/text-style.js";
 import heartFullImg from "./assets/heart-full.png";
 import heartEmptyImg from "./assets/heart-empty.png";
+import { StartScene } from "./scenes/start-scene.js";
 
 // A "Scene" is one screen of the game (a menu, a level, a game-over screen).
 // For now we make one empty scene just to prove everything works.
@@ -57,20 +58,36 @@ class BootScene extends Phaser.Scene {
   // spritesheet is a 3-row x 11-col grid of 48x48 cells (idle/run/jump rows
   // extracted from the source art — see specs/character-sprite.md §5).
   preload() {
-    this.load.spritesheet("buldog", buldogSheet, { frameWidth: 48, frameHeight: 48 });
+    // EVERY load here is guarded, because this scene is created more than once:
+    // on every level restart after a hit, and again on every new run started
+    // from the start screen — which has itself already loaded the bulldog sheet
+    // for its preview. Re-adding a key that is already in the cache loads
+    // nothing and logs a warning (textures) or an error (audio), so the guards
+    // are what keep the console clean across a whole session.
+    if (!this.textures.exists("buldog")) {
+      this.load.spritesheet("buldog", buldogSheet, { frameWidth: 48, frameHeight: 48 });
+    }
     // Small Bone collectible (specs/small-bones.md). Same 32x32-cell layout as
     // the bulldog sheet, so it loads the same way.
-    this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
-    this.load.audio("bone-pickup", bonePickupSfx);
+    if (!this.textures.exists("bone")) {
+      this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
+    }
+    if (!this.cache.audio.exists("bone-pickup")) {
+      this.load.audio("bone-pickup", bonePickupSfx);
+    }
     // The simple stompable enemy (specs/simple-enemy-stomp.md). A 2x2 grid of
     // 25x25 cells — a placeholder cat standing in for the Angry Pomeranian,
     // deliberately a bit smaller than the 48x48 bulldog.
-    this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
+    if (!this.textures.exists("enemy")) {
+      this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
+    }
     // The HP hearts (specs/health-hearts.md). Two separate 32x32 images rather
     // than a spritesheet: that's how the art was supplied, and swapping an
     // image's texture is the simplest possible "this heart is gone".
-    this.load.image(HEART_TEXTURE.full, heartFullImg);
-    this.load.image(HEART_TEXTURE.empty, heartEmptyImg);
+    if (!this.textures.exists(HEART_TEXTURE.full)) {
+      this.load.image(HEART_TEXTURE.full, heartFullImg);
+      this.load.image(HEART_TEXTURE.empty, heartEmptyImg);
+    }
   }
 
   // create() runs once when the scene starts. This is where we build the
@@ -91,6 +108,9 @@ class BootScene extends Phaser.Scene {
     // Define the three Alpha animations (idle/run/jump) from the frame ranges
     // in src/physics/animation.js, so the frame numbers live in one place.
     Object.values(ANIMATIONS).forEach(({ key, start, end, frameRate }) => {
+      // Animations are global to the game, and the start screen defines idle
+      // for its preview — skip whatever already exists rather than redefining.
+      if (this.anims.exists(key)) return;
       this.anims.create({
         key,
         frames: this.anims.generateFrameNumbers("buldog", { start, end }),
@@ -147,23 +167,30 @@ class BootScene extends Phaser.Scene {
     // The bone's idle bob. IMPORTANT: the sheet has 4 cells but only 3 drawn
     // frames — cell 3 is empty, so `end: 2` keeps a blank frame from flickering
     // through the loop.
-    this.anims.create({
-      key: "bone-idle",
-      frames: this.anims.generateFrameNumbers("bone", { start: 0, end: 2 }),
-      frameRate: 5,
-      repeat: -1,
-    });
+    if (!this.anims.exists("bone-idle")) {
+      this.anims.create({
+        key: "bone-idle",
+        frames: this.anims.generateFrameNumbers("bone", { start: 0, end: 2 }),
+        frameRate: 5,
+        repeat: -1,
+      });
+    }
 
     // Bones are static: they sit still and don't fall, so gravity/velocity
     // never apply to them.
     this.bones = this.physics.add.staticGroup();
     this.spawnBones();
 
+    // Reset on every create(), which includes the restart after a hit — the
+    // bones respawn, so keeping the old total would double-count them
+    // (specs/points-score.md). The registry mirror is written here too: it
+    // otherwise kept the pre-hit total until the next bone was collected, and
+    // the results window (UI-5) reads that mirror, not this field.
     this.score = INITIAL_SCORE;
+    this.registry.set("score", this.score);
 
     // TEMPORARY debug counter so we can see collecting works before the real
-    // HUD (UI-3) exists. Removed when UI-3 lands — same "temporary until the
-    // real UI" idea as the C color key below.
+    // HUD (UI-3) exists. Removed when UI-3 lands.
     // Top-RIGHT corner, anchored by its right edge 8px from the margin and
     // vertically centred on the heart row (specs/hud-and-font.md §5). Combined
     // with the zero-padded format, right-anchoring is what keeps the counter
@@ -214,12 +241,14 @@ class BootScene extends Phaser.Scene {
     // The enemy's only state is walking — it patrols non-stop, so there's no
     // idle animation to define. All four cells are used: cells 1 and 3 are
     // identical, which is what makes the loop a gentle A-B-C-B bob.
-    this.anims.create({
-      key: "enemy-walk",
-      frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
-      frameRate: 7,
-      repeat: -1,
-    });
+    if (!this.anims.exists("enemy-walk")) {
+      this.anims.create({
+        key: "enemy-walk",
+        frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
+        frameRate: 7,
+        repeat: -1,
+      });
+    }
 
     // A DYNAMIC group, unlike the bones' static one: enemies walk, fall, and
     // (once stomped) get launched, so they need real physics bodies.
@@ -234,19 +263,12 @@ class BootScene extends Phaser.Scene {
     // collecting can be re-tested without reloading the page.
     this.refreshKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
 
-    // TEMPORARY dev key: press C to cycle the bulldog's color
-    // (white -> black -> red). This proves the color-select feature works
-    // before the real title screen exists; the title screen (UI-2) will drive
-    // the same nextColor()/colorToTint() rules later, and this key gets
-    // removed then. C doesn't clash with the arrows or spacebar.
-    this.colorKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
-
     // Press F to toggle fullscreen (the on-screen button in index.html does
     // the same thing via game.scale.toggleFullscreen() — this is just the
     // keyboard-only equivalent, matching NFR-9).
     this.fullscreenKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
 
-    // ENTER starts a brand-new run from the GAME OVER screen. It does nothing
+    // ENTER leaves the GAME OVER screen for the start screen. It does nothing
     // anywhere else, so it can't clash with the arrows, spacebar or dev keys.
     this.enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
   }
@@ -466,10 +488,11 @@ class BootScene extends Phaser.Scene {
     // player is out of play — no walking, jumping, patrolling or dev keys.
     if (this.isGameOver) {
       if (Phaser.Input.Keyboard.JustDown(this.enterKey)) {
-        // Clear the carried-over count: ENTER means a brand-new run, so the
-        // restarted level reads a full set of hearts back out of the registry.
-        this.registry.set("hearts", resetHearts());
-        this.scene.restart();
+        // Back to the start screen, which is where a new run is set up: it
+        // refills the hearts, clears the score and hands the level the chosen
+        // nickname and color (specs/start-screen.md). The level never defines
+        // "new run" itself.
+        this.scene.start("StartScene");
       }
       return;
     }
@@ -520,14 +543,6 @@ class BootScene extends Phaser.Scene {
       // convention as the bulldog's facing (see physics/animation.js).
       enemy.setFlipX(enemy.direction < 0);
     });
-
-    // Cycle the bulldog's color when C is JUST pressed (JustDown is true for
-    // one frame only, so holding C doesn't strobe through colors).
-    if (Phaser.Input.Keyboard.JustDown(this.colorKey)) {
-      this.currentColor = nextColor(this.currentColor);
-      this.registry.set("color", this.currentColor);
-      this.player.setTint(colorToTint(this.currentColor));
-    }
 
     // Read the current input state.
     const leftDown = this.cursors.left.isDown;
@@ -601,7 +616,9 @@ const config = {
       debug: false,               // Set to true later to see collision boxes.
     },
   },
-  scene: [BootScene],             // The list of scenes in the game.
+  // The list of scenes. Phaser starts the FIRST one, so the start screen is
+  // the front door and the level is entered from it (specs/start-screen.md).
+  scene: [StartScene, BootScene],
 };
 
 // Creates and starts the game, plus the DOM wiring that needs the game object.
@@ -610,8 +627,12 @@ function startGame() {
 
   // Wire the HTML fullscreen button (index.html) to Phaser's Scale Manager —
   // the in-game F key (BootScene.update) does the same thing.
-  document.getElementById("fullscreen-btn").addEventListener("click", () => {
+  document.getElementById("fullscreen-btn").addEventListener("click", (event) => {
     game.scale.toggleFullscreen();
+    // Hand focus back to the page. A focused <button> re-fires its click on
+    // ENTER and SPACE, so leaving it focused meant every jump in the level —
+    // and ENTER on the start screen — also toggled fullscreen.
+    event.currentTarget.blur();
   });
 
 // The browser's fullscreen transition doesn't always finish before Phaser's

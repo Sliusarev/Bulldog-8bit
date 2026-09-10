@@ -245,11 +245,11 @@ MOVE-7, not here).
 
 ## Epic 8 — UI: Meta UI (Title, HUD, Input)
 
-- **UI-1 — Start / title screen** 🔲 Backlog `[Alpha]` *(Alpha uses a minimal version)*
-  As a player, I want a screen before the level where I set up my run. **Alpha needs only a minimal start screen** hosting nickname entry (UI-2) + color select (CHAR-4) + a "start" action. The fuller, art-directed arcade title screen is `[Beta]`.
+- **UI-1 — Start / title screen** ✅ Done `[Alpha]` *(minimal Alpha version; the fuller arcade title screen stays `[Beta]`)*
+  As a player, I want a screen before the level where I set up my run. **Alpha needs only a minimal start screen** hosting nickname entry (UI-2) + color select (CHAR-4) + a "start" action. The fuller, art-directed arcade title screen is `[Beta]`. **Built** — spec `specs/start-screen.md`: `src/scenes/start-scene.js` (the first file in `src/scenes/`), showing the title `BULLDOG RUSH`, the nickname field, and a live tinted bulldog preview cycled with the arrows via `nextColor()`/`previousColor()`. It is the game's front door and the single definition of "a new run": it resets hearts and score into the registry, and STATE-3's GAME OVER returns here rather than restarting the level. The temporary `C` dev key from CHAR-4 is removed.
 
-- **UI-2 — Arcade-style nickname entry** 🔲 Backlog `[Alpha]`
-  As a player, I want to type a short nickname before playing (no login), so that my result is labelled as mine. Shown again in the results window (UI-5).
+- **UI-2 — Arcade-style nickname entry** ✅ Done `[Alpha]`
+  As a player, I want to type a short nickname before playing (no login), so that my result is labelled as mine. Shown again in the results window (UI-5). **Built** — spec `specs/start-screen.md`: typed on the keyboard (not an arcade letter-wheel), **required, 3-10 characters, A-Z 0-9**, auto-uppercased, blinking cursor, and a bottom line that reads `MIN 3 LETTERS` until the name is long enough so ENTER is never silently ignored. Pure rules unit-tested in `src/state/nickname.js`; drawn in black at 8px (`NICKNAME_TEXT_STYLE`) so it reads as the field being edited. Stored in the registry as `nickname` for UI-5. Nothing is persisted between browser sessions — that arrives with the scoreboard's local cache (BOARD) and the cookie-consent story.
 
 - **UI-3 — In-game HUD + typography** ✅ Done `[Alpha]` *(scope split; timer dropped)*
   As a player, I want to see my status while playing. **Alpha HUD:** HP hearts and the score (SCORE-8) — two things, one line. The **Energy segments** display is `[Beta]`, and so is the level timer (SCORE-7). **This story also owns the game's typography:** swap the temporary 12px monospace for **Press Start 2P** (free arcade pixel font, SIL OFL) everywhere text appears — HUD, GAME OVER, and later the start screen and results window. Vendored into `src/assets/fonts/` with its licence and loaded by a plain `@font-face` in `index.html` (awaiting `document.fonts.ready` before the first draw) — no npm package, no CDN. Doing it here, once, keeps the typography consistent instead of drifting per screen. **Built** — see `specs/hud-and-font.md`: hearts top-left, right-anchored `SCORE 000400` top-right, shared `TEXT_STYLE`/`TITLE_TEXT_STYLE` in `src/ui/text-style.js`, and a boot gate (`loadPixelFont()` → `startGame()`) so the first frame is already in the font, with a monospace fallback if it can't load. `UI-1/2/5` inherit these styles.
@@ -423,9 +423,9 @@ Carried-over assumptions from the redesign:
 **12 Epics, 70 features (65 active + 5 cut):** *(+1: CHAR-9, per-color sprite
 sheets; +5: the new PROC epic, which covers process/tooling/docs work so that
 every change can link to an Epic)*
-- ✅ 26 done or already satisfied (21 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3/5 — plus 5 NFRs met by existing config/process)
+- ✅ 28 done or already satisfied (23 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-1/2/3, AUDIO-3, NFR-11, PROC-1/2/3/5 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 37 backlog or in progress *(includes PROC-4)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 35 backlog or in progress *(includes PROC-4)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
@@ -434,8 +434,8 @@ every change can link to an Epic)*
   SCORE-1/8, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
   (1/2/3/4/5/6/8/9/10/11), minus SCORE-7 (the timer, moved to `[Beta]`) and
   plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/3/4,
-  SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, UI-3, and the other ✅ NFRs
-  are done — the rest (STATE-3, LEVEL-6, UI-1/2/5, NFR-1/2/6/8) are the
+  SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, UI-1/2/3, and the other
+  ✅ NFRs are done — the rest (STATE-3, LEVEL-6, UI-5, NFR-1/2/6/8) are the
   Alpha build backlog, plus CHAR-9, which is Alpha scope but deliberately
   scheduled last, in the polish pass.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,

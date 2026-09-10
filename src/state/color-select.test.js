@@ -7,6 +7,7 @@ import {
   DEFAULT_COLOR,
   COLOR_TINTS,
   nextColor,
+  previousColor,
   colorToTint,
 } from "./color-select.js";
 
@@ -56,5 +57,24 @@ describe("color definitions", () => {
 
   it("black is a dark grey, not pure black (keeps sprite detail visible)", () => {
     expect(COLOR_TINTS.black).toBeGreaterThan(0x000000);
+  });
+});
+
+describe("previousColor", () => {
+  it("steps red -> black", () => {
+    expect(previousColor("red")).toBe("black");
+  });
+
+  it("steps black -> white", () => {
+    expect(previousColor("black")).toBe("white");
+  });
+
+  it("wraps white -> red", () => {
+    expect(previousColor("white")).toBe("red");
+  });
+
+  it("falls back to the default from an unknown/unset value", () => {
+    expect(previousColor("green")).toBe(DEFAULT_COLOR);
+    expect(previousColor(undefined)).toBe(DEFAULT_COLOR);
   });
 });

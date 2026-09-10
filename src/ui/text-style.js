@@ -31,6 +31,16 @@ export const TEXT_STYLE = {
   color: "#ffffff",
 };
 
+// The nickname being typed on the start screen (UI-2). Black rather than
+// white, at the body size: on a screen where every label is white, the one
+// black line is unmistakably the thing the player is editing — and black on
+// the NES sky blue is the strongest contrast this palette has, so it needs no
+// box or highlight behind it.
+export const NICKNAME_TEXT_STYLE = {
+  ...TEXT_STYLE,
+  color: "#000000",
+};
+
 // Headings — GAME OVER now, UI-5's results heading later.
 export const TITLE_TEXT_STYLE = {
   ...TEXT_STYLE,
