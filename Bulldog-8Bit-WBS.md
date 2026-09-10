@@ -118,6 +118,20 @@ time via the existing spec-driven loop.
 - **CHAR-8 — Bulldog Rush "out of control" visual** 🔲 Backlog `[Beta]` *(new)*
   As a player, I want the Bulldog to visibly wobble/blur during a Rush, so that "hard to steer" is communicated visually, not just mechanically.
 
+- **CHAR-9 — Per-color bulldog sprite sheets** 🔲 Backlog `[Alpha]` *(new)*
+  As a player, I want each bulldog color to be real hand-made art rather than a
+  tint over the white sheet, so that the black and ginger dogs look drawn, not
+  recolored. **Deliberately scheduled for the Alpha polish pass** — after the
+  remaining Alpha features are built (UI-1/2, UI-5, LEVEL-6) — since tinting is
+  a working stand-in, and `CLAUDE.md` already allows either approach ("tint the
+  sprite or swap sprite sheets per color"). Touch points when it's picked up:
+  `colorToTint` in `src/state/color-select.js` becomes a color → texture-key
+  map (the `nextColor` cycle rules are unaffected), the `setTint` calls in
+  `src/main.js`, `tools/make-hurt-frame.py` runs per sheet, and — the one real
+  design question — `getHurtTint` (`CHAR-3`), whose damage blink currently
+  alternates *against* the hero's tint and so needs rethinking once there is no
+  tint to alternate against.
+
 ---
 
 ## Epic 3 — ABILITY: Special Abilities & Resources *(new epic)* — all `[Beta]`
@@ -354,10 +368,10 @@ Carried-over assumptions from the redesign:
 
 ## Summary
 
-**11 Epics, 64 features (59 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
+**11 Epics, 65 features (60 active + 5 cut):** *(+1: CHAR-9, per-color sprite sheets)*
 - ✅ 22 done or already satisfied (17 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 35 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 36 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
@@ -368,7 +382,8 @@ Carried-over assumptions from the redesign:
   plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/3/4,
   SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, UI-3, and the other ✅ NFRs
   are done — the rest (STATE-3, LEVEL-6, UI-1/2/5, NFR-1/2/6/8) are the
-  Alpha build backlog.
+  Alpha build backlog, plus CHAR-9, which is Alpha scope but deliberately
+  scheduled last, in the polish pass.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
   LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, NFR-7, and now SCORE-7

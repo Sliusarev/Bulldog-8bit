@@ -102,6 +102,7 @@ refill); no i-frames; 0 hearts → Game Over.
 - [ ] 📄 **Goal marker + results window** (`LEVEL-6` end + `UI-5`): a goal marker ends the level and opens a simple window showing the nickname and the final score (same window on Game Over).
 - [ ] **Assemble the Alpha level** (`LEVEL-6`): lay out one platforming level (hardcoded first, or Tiled) populated with bones, the simple enemy, and the goal marker. Minimal flow: start screen → level → results window.
 - [ ] Test: win the level (reach goal → results) AND lose it (take a hit → level restart, 0 hearts → Game Over → results) both work; unit-test score/HP math and the stomp-vs-hit rule; run the basic test checklist.
+- [ ] **Alpha polish pass** — the deliberately-last cosmetic work, once the loop above plays end to end. Includes `CHAR-9`: replace the `setTint` bulldog colors with real per-color sprite sheets (black + ginger drawn, not recolored). Note it interacts with `CHAR-3`'s damage blink, which currently alternates against the hero's tint.
 - [ ] Commit + push; deploy the Alpha slice (`NFR-8`).
 
 **Alpha done when:** enter a nickname → pick a color → play the one level —
