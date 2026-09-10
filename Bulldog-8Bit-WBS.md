@@ -355,13 +355,20 @@ merge. It does not need a spec or a technical design.
   `superpowers`' two review skills disabled) and restructures the delivery flow
   into three lanes.
 
-- **PROC-5 — Claude Code plugins** 🔲 In progress
-  `superpowers` installed (user scope) for `brainstorming`,
-  `test-driven-development` and `systematic-debugging`;
-  `subagent-driven-development` held at `user-invocable-only` as too heavy for a
-  project this size. **Open:** the `skillOverrides` keys in
-  `~/.claude/settings.json` did not take effect — the disabled skills still list.
-  Needs the correct key format, to be read back from what the `/skills` UI writes.
+- **PROC-5 — Claude Code skills: vendored, no plugins** ✅ Done
+  As a developer, I want exactly the skills this project uses and nothing else,
+  so that unwanted workflows aren't sitting in every session waiting to be
+  invoked. `brainstorming`, `test-driven-development` and `systematic-debugging`
+  are copied into `.claude/skills/` from the `superpowers` plugin (MIT, Jesse
+  Vincent) and the plugin is uninstalled.
+  **Why copied rather than installed:** Claude Code has no way to disable an
+  individual skill of a plugin — `skillOverrides` is skipped outright for
+  plugin-sourced skills (verified in the CLI, v2.1.259: the resolver returns
+  `"on"` before it ever reads the setting), and `pluginConfigs` only covers MCP
+  servers and manifest options. Installing was all-or-nothing, and the plugin's
+  other 11 skills included the two code-review ones that PROC-4 deliberately
+  ruled out. Vendoring also allowed the copies to be trimmed and adapted — see
+  `CLAUDE.md` → Claude Code skills. Trade-off accepted: no upstream updates.
 
 ## Deliberately out of scope for v1
 
@@ -414,9 +421,9 @@ Carried-over assumptions from the redesign:
 **12 Epics, 70 features (65 active + 5 cut):** *(+1: CHAR-9, per-color sprite
 sheets; +5: the new PROC epic, which covers process/tooling/docs work so that
 every change can link to an Epic)*
-- ✅ 25 done or already satisfied (20 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3 — plus 5 NFRs met by existing config/process)
+- ✅ 26 done or already satisfied (21 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3/5 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 38 backlog or in progress *(includes PROC-4/5)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 37 backlog or in progress *(includes PROC-4)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 

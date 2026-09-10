@@ -292,7 +292,7 @@ Buldog_8bit/
 │  ├─ physics/         # Pure, unit-tested game logic (e.g. player.js + player.test.js)
 │  └─ assets/          # (planned) images, tilemaps, audio
 ├─ specs/              # Feature specs (spec-driven workflow); _TEMPLATE.md to start one
-├─ .claude/skills/      # Project-specific Claude Code skills, e.g. story-unit-tests
+├─ .claude/skills/     # Claude Code skills (see below)
 └─ CLAUDE.md           # This file
 ```
 
@@ -500,10 +500,10 @@ playtest, exactly as before. If a rule inside the Scene *could* be a pure
 function, that's a signal to extract it into `src/physics/` or `src/state/` and
 TDD it there — not a reason to relax the rule.
 
-> The `superpowers` plugin's `test-driven-development` skill states an
-> exception-free "no production code without a failing test first". **Scoped to
-> pure logic, that rule holds here; applied to the Scene it is unachievable.**
-> This section is what wins for this repo.
+> The `test-driven-development` skill in `.claude/skills/` enforces this. It
+> states an exception-free "no production code without a failing test first";
+> the vendored copy is **scoped to pure logic**, because applied to the Scene
+> that rule is unachievable. This section is what wins for this repo.
 
 #### Code review — one path, two passes
 
@@ -511,12 +511,13 @@ TDD it there — not a reason to relax the rule.
 change, and again at step 8 after bug fixes, so fixes don't reach the PR
 unreviewed. Skip both on the Docs lane.
 
-**The built-in `/code-review` is the single review path in this project.** The
-`code-review` marketplace plugin and `superpowers`' `requesting-code-review` /
-`receiving-code-review` skills were deliberately uninstalled/disabled rather
-than left alongside it — the built-in one is the only one that reviews a *local*
-diff (so it fits the small-step test-first rhythm, before a PR exists) and can
-still comment on a PR later with `--comment`. Don't reintroduce a second one.
+**The built-in `/code-review` is the single review path in this project.** It is
+the only one that reviews a *local* diff — which is what the small-step
+test-first rhythm needs, before a PR exists — and it can still comment on a PR
+later with `--comment`. The `code-review` marketplace plugin (PR-only) and
+`superpowers`' `requesting-code-review` / `receiving-code-review` were
+deliberately dropped rather than left alongside it. Don't reintroduce a second
+one.
 
 ### Code style / linting
 - ESLint (flat config, `eslint.config.js`) catches baseline issues (unused
@@ -531,6 +532,38 @@ still comment on a PR later with `--comment`. Don't reintroduce a second one.
 - One scene per file under `src/scenes/`; keep `main.js` focused on config.
 - Prefer small, testable steps. After adding a feature, confirm the dev server
   still runs and the canvas renders without console errors.
+
+### Claude Code skills — vendored, not plugged in
+
+`.claude/skills/` holds every skill this project uses, checked into the repo:
+
+| Skill | Origin | Used at |
+|---|---|---|
+| `story-unit-tests` | ours | adding tests to an existing story |
+| `update-checklist` | ours | after a merge, and after non-code work |
+| `brainstorming` | vendored | step 1, when a feature has no spec yet |
+| `test-driven-development` | vendored | step 4 |
+| `systematic-debugging` | vendored | step 8 |
+
+The three vendored ones come from the `superpowers` plugin by Jesse Vincent
+(MIT — `.claude/skills/SUPERPOWERS-LICENSE.txt`). They were **copied in and the
+plugin uninstalled**, rather than kept installed, because **Claude Code cannot
+disable an individual skill of a plugin**: `skillOverrides` is skipped outright
+for plugin-sourced skills, and `pluginConfigs` only covers MCP servers and
+manifest options. Installing the plugin was therefore all-or-nothing — its other
+11 skills would have stayed listed and usable, including the two review skills
+this project deliberately does not want (see Code review above).
+
+Vendoring also let the copies be trimmed and adapted, which is the bigger win:
+`test-driven-development` is scoped to pure logic so it stops contradicting
+Testing strategy; `brainstorming`'s visual companion (a local Node HTTP server)
+was left out as a dependency this repo has no use for; `systematic-debugging`'s
+skill-testing fixtures were left out. Each vendored file carries an attribution
+note saying what was changed.
+
+Consequences: these skills **do not receive upstream updates** — re-vendor by
+hand if that is ever wanted. And each is now project code: edit them freely to
+fit this repo, and they go through the normal PR flow like anything else.
 
 ### Keep the tech stack consistent — no "tech zoo"
 
