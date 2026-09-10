@@ -3,7 +3,14 @@
 
 import Phaser from "phaser";
 import { getWalkVelocityX, canJump, nextAirJumpsUsed, JUMP_VELOCITY } from "./physics/player.js";
-import { ANIMATIONS, DEFAULT_FACING, getAnimationKey, nextFacing } from "./physics/animation.js";
+import {
+  ANIMATIONS,
+  DEFAULT_FACING,
+  getAnimationKey,
+  getHurtTint,
+  nextFacing,
+  HURT_FLASH_INTERVAL_MS,
+} from "./physics/animation.js";
 import { DEFAULT_COLOR, nextColor, colorToTint } from "./state/color-select.js";
 import {
   INITIAL_SCORE,
@@ -361,15 +368,36 @@ class BootScene extends Phaser.Scene {
     this.registry.set("hearts", this.hearts);
     this.renderHearts();
 
-    // Freeze and flash. The red tint stands in for the squashed hurt frame,
-    // which is its own story (CHAR-3).
+    // Freeze, drop into the squashed hurt pose, and start the damage blink
+    // (CHAR-3, specs/hurt-frame.md). update() already returns early while
+    // isHurt, so nothing re-derives the animation over this frame.
     this.player.body.setVelocityX(0);
-    this.player.setTint(0xff0000);
+    this.player.play(ANIMATIONS.hurt.key);
+
+    // The blink alternates between the damage red and the hero's own selected
+    // color, so the hit reads even on the red bulldog. The handle is kept so
+    // the Game Over branch can stop it — the restart branch doesn't need to,
+    // since scene.restart() tears the clock down with the scene.
+    const baseTint = colorToTint(this.currentColor);
+    let flashElapsed = 0;
+    this.player.setTint(getHurtTint(flashElapsed, baseTint));
+    this.hurtFlashTimer = this.time.addEvent({
+      delay: HURT_FLASH_INTERVAL_MS,
+      loop: true,
+      callback: () => {
+        flashElapsed += HURT_FLASH_INTERVAL_MS;
+        this.player.setTint(getHurtTint(flashElapsed, baseTint));
+      },
+    });
 
     // The beat between the hit and the reset. A scene restart tears down this
     // scene's clock, so this timer can never fire into the new level.
     this.time.delayedCall(HIT_PAUSE_MS, () => {
       if (isRunOver(this.hearts)) {
+        // Stop mid-blink and put his own color back, so the dog frozen under
+        // the GAME OVER overlay isn't stuck on a red flash frame.
+        this.hurtFlashTimer.remove();
+        this.player.setTint(colorToTint(this.currentColor));
         this.showGameOver();
       } else {
         // Everything except the heart count comes back fresh: the player at
