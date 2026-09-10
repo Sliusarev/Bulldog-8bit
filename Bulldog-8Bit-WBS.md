@@ -295,7 +295,9 @@ where it first matters (the "already satisfied" ones hold for Alpha).
 - **NFR-4 — CI must stay green** ✅ Already satisfied `[Alpha]` — see `CLAUDE.md` → Architecture notes.
 - **NFR-5 — Unit test coverage for logic, not rendering** ✅ Already satisfied `[Alpha]` — see the `story-unit-tests` skill.
 - **NFR-6 — Persistence must degrade gracefully** 🔲 Backlog `[Alpha]` — no crash if `localStorage` is unavailable (applies once the results window caches anything locally).
-- **NFR-7 — No secrets in front-end code** 🔲 Backlog `[Beta]` (applies once BOARD-1 is built) — public/anon keys only.
+- **NFR-7 — No secrets in front-end code** 🔲 Backlog `[Beta]` (applies once BOARD-1 is built) — public/anon
+  keys only, never the `service_role` key. **Decided: no key vault** — the anon key is public by design, and
+  Row Level Security is the actual control. Full policy in `specs/scoreboard.md` § 6 → Secrets & keys.
 - **NFR-8 — Deployability** 🔲 Backlog `[Alpha]` — static build, deployable to any static host (needed to ship the Alpha slice).
 - **NFR-9 — Keyboard-only playability** ✅ Already satisfied `[Alpha]` — arrows + spacebar cover everything today; keep true as new inputs are added.
 - **NFR-10 — Trunk-based workflow** ✅ Already satisfied `[Alpha]` — see `CLAUDE.md` → Architecture notes.
