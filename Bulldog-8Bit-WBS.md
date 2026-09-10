@@ -81,8 +81,19 @@ time via the existing spec-driven loop.
 - **CHAR-2 — Bulldog sprite + animations** ✅ Done `[Alpha]` *(scope split)*
   As a player, I want to see an animated bulldog instead of a rectangle, so that the game looks and feels real. **Alpha needs only idle, run, and jump** — the ClickUp story for this feature (`869e4tfwc`) explicitly puts the **hurt** frame out of scope here; it's owned entirely by `CHAR-3`. The **crawl, fart-attack, and rush** frames are `[Beta]` (see CHAR-6/7/8). Spec: `specs/character-sprite.md`. Built: sprite + idle/run/jump animations, `src/assets/buldog.png`, animation/facing logic unit-tested in `src/physics/animation.js`. Merged to `main`.
 
-- **CHAR-3 — Hurt animation frame** 🔲 Backlog `[Alpha]`
-  As a player, I want a squashed "hurt" frame shown when I take a hit, so that damage reads clearly. Needed in Alpha because Alpha has the 3-hearts damage model.
+- **CHAR-3 — Hurt animation frame** ✅ Done `[Alpha]`
+  As a player, I want a squashed "hurt" frame shown when I take a hit, so that
+  damage reads clearly. Spec: `specs/hurt-frame.md`. Built: the pose plays for
+  the whole ~500 ms hit beat (level restart and last heart alike), replacing
+  `STATE-1`'s placeholder red tint, with a blink alternating between damage red
+  and the hero's own `CHAR-4` color so a hit reads even on the red bulldog.
+  `ANIMATIONS.hurt` (frame 33), the hurt-first priority in `getAnimationKey`
+  and `getHurtTint` are unit-tested in `src/physics/animation.js`. No hurt pose
+  existed in the source art, so the frame is derived from idle frame 0 by
+  `tools/make-hurt-frame.py` (dev-only Pillow script, outside the runtime stack)
+  and committed as a 4th sheet row, leaving existing frame indices untouched.
+  Playtest fix landed with it: the selected hero color now survives a level
+  restart (registry, like hearts). Merged in PR #12.
 
 - **CHAR-4 — Bulldog color select (white/black/red)** ✅ Done `[Alpha]`
   Spec: `specs/color-select.md`. Pure cycle/tint rules in
@@ -106,6 +117,20 @@ time via the existing spec-driven loop.
 
 - **CHAR-8 — Bulldog Rush "out of control" visual** 🔲 Backlog `[Beta]` *(new)*
   As a player, I want the Bulldog to visibly wobble/blur during a Rush, so that "hard to steer" is communicated visually, not just mechanically.
+
+- **CHAR-9 — Per-color bulldog sprite sheets** 🔲 Backlog `[Alpha]` *(new)*
+  As a player, I want each bulldog color to be real hand-made art rather than a
+  tint over the white sheet, so that the black and ginger dogs look drawn, not
+  recolored. **Deliberately scheduled for the Alpha polish pass** — after the
+  remaining Alpha features are built (UI-1/2, UI-5, LEVEL-6) — since tinting is
+  a working stand-in, and `CLAUDE.md` already allows either approach ("tint the
+  sprite or swap sprite sheets per color"). Touch points when it's picked up:
+  `colorToTint` in `src/state/color-select.js` becomes a color → texture-key
+  map (the `nextColor` cycle rules are unaffected), the `setTint` calls in
+  `src/main.js`, `tools/make-hurt-frame.py` runs per sheet, and — the one real
+  design question — `getHurtTint` (`CHAR-3`), whose damage blink currently
+  alternates *against* the hero's tint and so needs rethinking once there is no
+  tint to alternate against.
 
 ---
 
@@ -343,8 +368,8 @@ Carried-over assumptions from the redesign:
 
 ## Summary
 
-**11 Epics, 64 features (59 active + 5 cut):** *(+1: AUDIO-3, new Alpha SFX exception)*
-- ✅ 21 done or already satisfied (16 built features — MOVE-1/2/3/7, CHAR-1/2/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+**11 Epics, 65 features (60 active + 5 cut):** *(+1: CHAR-9, per-color sprite sheets)*
+- ✅ 22 done or already satisfied (17 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
 - 🔲 36 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
@@ -354,10 +379,11 @@ Carried-over assumptions from the redesign:
 - `[Alpha]` (the vertical slice): MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4,
   SCORE-1/8, STATE-1/3, LEVEL-6, UI-1/2/3/5, AUDIO-3, and the Alpha-tagged NFRs
   (1/2/3/4/5/6/8/9/10/11), minus SCORE-7 (the timer, moved to `[Beta]`) and
-  plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/4,
+  plus SCORE-8 (the points score). Of these, MOVE-1/2/3/7, CHAR-1/2/3/4,
   SCORE-1/8, AUDIO-3, NFR-11, ENEMY-1/3/4, STATE-1, UI-3, and the other ✅ NFRs
-  are done — the rest (CHAR-3, STATE-3, LEVEL-6, UI-1/2/5, NFR-1/2/6/8) are the
-  Alpha build backlog.
+  are done — the rest (STATE-3, LEVEL-6, UI-1/2/5, NFR-1/2/6/8) are the
+  Alpha build backlog, plus CHAR-9, which is Alpha scope but deliberately
+  scheduled last, in the polish pass.
 - `[Beta]` (deferred, may be trimmed further): everything else — MOVE-4/6,
   CHAR-6/7/8, the whole ABILITY epic, ENEMY-2/5/6, SCORE-2/3/4/6, STATE-2/4,
   LEVEL-1/2/3/5, UI-4, the BOARD epic, AUDIO-1/2, NFR-7, and now SCORE-7
