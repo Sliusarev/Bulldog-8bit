@@ -57,7 +57,9 @@ export class StartScene extends Phaser.Scene {
     this.color = this.registry.get("color") ?? DEFAULT_COLOR;
     this.blinkOn = true;
 
-    this.add.text(160, 40, "BULDOG", TITLE_TEXT_STYLE).setOrigin(0.5);
+    // The game's name. 12 characters at 16px is 192px wide, so it still fits
+    // the 320px screen with room either side.
+    this.add.text(160, 40, "BULLDOG RUSH", TITLE_TEXT_STYLE).setOrigin(0.5);
     this.add.text(160, 88, "ENTER YOUR NAME", TEXT_STYLE).setOrigin(0.5);
     this.nicknameText = this.add.text(160, 104, "", NICKNAME_TEXT_STYLE).setOrigin(0.5);
 

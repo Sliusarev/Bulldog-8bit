@@ -11,8 +11,11 @@
 > The fuller, art-directed arcade title screen is `[Beta]`; this is the
 > minimal version Alpha needs.
 
-> **Status:** draft for review — workflow step 1 (requirements) and step 3
-> (technical design) presented together. No code written yet.
+> **Status:** v3 — implemented, reviewed twice, and playtested by Artem (all
+> acceptance criteria pass). The game's name is **Bulldog Rush**, so the
+> heading reads `BULLDOG RUSH`.
+>
+> *(Was: draft for review — workflow steps 1 and 3 presented together.)*
 >
 > Decisions already made with Artem before drafting: nickname is **typed
 > normally on the keyboard** (not an arcade letter-wheel), **A-Z 0-9**, nothing
@@ -111,8 +114,8 @@ labelled with my name.
       the level starts with the bulldog in that color, 3 full hearts and
       `SCORE 000000`.
 - [ ] Given the start screen, when it is drawn, then the nickname is **black**
-      and one size smaller than the `BULDOG` heading, so it reads as the thing
-      being edited rather than as more of the surrounding white text.
+      and one size smaller than the `BULLDOG RUSH` heading, so it reads as the
+      thing being edited rather than as more of the surrounding white text.
 - [ ] Given a run that reached 0 hearts, when ENTER is pressed on GAME OVER,
       then the start screen appears again with the previous nickname and color
       still shown (already valid, so `PRESS ENTER` is showing), and pressing
@@ -133,7 +136,7 @@ Layout on the 320x240 canvas, using the shared styles from
 
 ```
                                           y
-            B U L D O G                   40    TITLE_TEXT_STYLE
+          BULLDOG RUSH                  40    TITLE_TEXT_STYLE
 
           ENTER YOUR NAME                 88    TEXT_STYLE
               ARTEM_                     104    NICKNAME_TEXT_STYLE
@@ -412,7 +415,7 @@ criteria.
 - [ ] Typing shows uppercase characters immediately, with a cursor blinking
       after them; the name stays centered and does not twitch as it blinks.
 - [ ] `PRESS ENTER` blinks.
-- [ ] The name is black and smaller than the `BULDOG` heading, and reads
+- [ ] The name is black and smaller than the `BULLDOG RUSH` heading, and reads
       clearly against the sky-blue background.
 - [ ] Space, `-`, `!` and Cyrillic letters produce nothing at all.
 - [ ] The name stops at 10 characters, however long you hold a key.
@@ -441,7 +444,9 @@ criteria.
 
 **Risk: Low** — two assumptions, both cheap to reverse:
 
-1. The title is the word `BULDOG` set in the game's font, not a logo image —
-   art-directed title screens are `[Beta]`.
+1. The title is the game's name, `BULLDOG RUSH`, set in the game's font rather
+   than as a logo image — art-directed title screens are `[Beta]`. Note it
+   collides with the `[Beta]` **Bulldog Rush** ability name; that is a
+   deliberate choice of Artem's, not an oversight.
 2. Resetting `hearts` and `score` is the start screen's job, not the level's,
    so "new run" has exactly one definition.
