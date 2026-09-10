@@ -344,32 +344,84 @@ Consequences to work with, not around:
   commit signing is set up first. Set up signing before re-enabling it, not
   after.
 
-#### The agreed delivery flow (per feature)
+#### The agreed delivery flow
 
-This is the order every feature follows. **Claude never merges to `main`
-directly** — the PR + Artem's approval is the gate.
+**Claude never merges to `main` directly** — the PR + Artem's approval is the
+gate, on every lane.
 
-1. **Approved requirements (spec).** A spec in `specs/` is written and
-   **approved by Artem** before anything else.
-2. **Claude presents a plan + risk level.** Claude lays out the approach and
-   rates its **risk** (see the rubric below). This tells Artem whether the
-   requirements are solid and the plan is clear enough to proceed.
-3. **Technical design → approved by Artem.** Before writing any code, Claude
-   writes the **technical design** (see below) and Artem approves it.
-   **Implementation does not start until the design is approved.**
-4. **Claude implements (locally).** Built on a feature branch, with unit tests
-   and a green local `lint` / `test` / `build`. Pure logic in `src/physics/` and
-   `src/state/` is written **test-first** (see Testing strategy → Test-first).
-   4.5. **Claude self-reviews.** Claude runs `/code-review` over the change and
-   acts on the findings *before* handing it over. Skipped for docs-only changes.
-5. **Artem reviews & tests the results.** Artem runs it locally (dev server /
-   playtest) and reviews the behavior.
-6. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
-7. **Claude creates the PR.** Claude pushes the feature branch and opens the
-   PR into `main` (if the `gh` CLI isn't available, Claude pushes the branch
-   and provides the compare URL for Artem to open the PR).
-8. **Artem approves the PR in GitHub.**
-9. **Merge completed** — the PR is merged into `main`.
+##### Every change links to an Epic
+
+Before anything else, the change is tied to at least an **Epic** in
+`Bulldog-8Bit-WBS.md`, and to a **Feature ID** (`MOVE-7`, `CHAR-3`, …) whenever
+one fits. No orphan changes — a repo where work isn't traceable back to the
+plan becomes a mess fast.
+
+- If the work matches an existing Feature, use its ID.
+- If it fits an Epic but no Feature, **add the Feature row to the WBS first**
+  (in the same branch), then build it.
+- Process, tooling and planning-doc work lives under **Epic 12 — PROC**, which
+  exists precisely so this kind of change has somewhere to hang.
+
+The Feature/Epic ID goes in the branch name, the PR title, and the spec.
+
+##### Which lane a change takes
+
+The lane is chosen by what the change *is*, not by how it feels in the moment
+— it is easy to talk yourself into the cheap lane for a 700-line diff.
+
+| Lane | What it covers | Steps |
+|---|---|---|
+| **Docs** | Checklists, README, WBS/roadmap, planning docs — no `src/` changes at all | Link to Epic → branch → PR → merge |
+| **Small change** | Touches one module, no new mechanic, no new module (tuning, a follow-up fix, a small extension of existing logic) | 1–2 merged into one short spec, then 4–9 |
+| **Feature** | A new mechanic, a new module, or anything that reads as a story (every real feature so far has been 450–950 lines across 7–10 files) | All of 1–9 |
+
+##### The steps
+
+1. **Approved requirements (spec).** A spec in `specs/`, linked to its
+   Feature/Epic ID, **approved by Artem** before anything else.
+2. **Claude presents a plan + risk level.** The approach, plus a **risk rating**
+   (see the rubric below) with the actual assumptions listed. **This is the only
+   step that carries a risk rating** — later steps run on requirements that are
+   already settled, so a rating there would be a ritual number rather than a
+   decision. At **High**, Claude stops and asks rather than proceeding.
+3. **Technical design → approved by Artem.** Written into the feature's spec
+   file. **Implementation does not start until the design is approved.** This
+   gate stays separate from step 1 on purpose: it is the checkpoint that catches
+   Claude planning to build the wrong thing (or hallucinating an approach)
+   *before* any code exists, which is the cheapest place to catch it.
+4. **Claude implements (locally), test-first.** On a feature branch named for
+   the Feature ID. Pure logic in `src/physics/` and `src/state/` gets its test
+   written **first**, from the spec's acceptance criteria, and **run so the
+   failure is seen** before the implementation exists (see Testing strategy →
+   Test-first). Scene code in `src/main.js` is exempt — it can't be unit tested.
+5. **Claude self-reviews.** `/code-review` over the change; act on the findings.
+6. **Claude verifies, with evidence.** `lint` / `test` / `build` all green, and
+   Claude **shows the actual command output** rather than asserting it passed.
+   A claim of "all green" without the output is not a verification.
+7. **Test checklist → Artem tests.** Claude writes a playtest checklist from the
+   spec's acceptance criteria (into the spec file), and Artem plays it.
+8. **Bug fixes.** For each bug Artem finds:
+   - Use `systematic-debugging` — understand the cause before proposing a fix.
+   - **Write a failing test first**, then fix it. Bugs found in real play are the
+     most valuable tests there are: they come from reality rather than from
+     Claude's reading of the spec, which is exactly the blind spot that makes
+     after-the-fact tests agree with the code. If the bug is in the Scene and no
+     unit test can express it, that is a signal to extract the rule into
+     `src/physics/` or `src/state/` — not a reason to skip the test.
+   - **Re-run `/code-review` after the fixes**, so fixes don't reach the PR
+     unreviewed.
+   - If the *requirements* turn out to be wrong rather than the code, go back to
+     step 1. That is a spec change, not a bug fix — don't let scope creep in
+     disguised as fixing.
+9. **Artem confirms → PR → merge.** On Artem's explicit go-ahead (not assumed),
+   Claude pushes the branch and opens the PR into `main` (if the `gh` CLI isn't
+   available, Claude pushes and provides the compare URL). Checklist and
+   WBS-status updates ride along **in the same PR** as the feature, so they can't
+   drift — except the "merged" tick itself, which can only be made afterwards.
+   CI (`build-and-test`) must be green. **Artem approves and merges.**
+
+After a batch of large features closes, README and the broader documentation get
+a pass of their own (Docs lane).
 
 #### Technical design (step 3)
 
@@ -453,18 +505,18 @@ TDD it there — not a reason to relax the rule.
 > pure logic, that rule holds here; applied to the Scene it is unachievable.**
 > This section is what wins for this repo.
 
-#### Code review before handoff (step 4.5 of the delivery flow)
+#### Code review — one path, two passes
 
-Before handing a feature to Artem for review (step 5), run the built-in
-`/code-review` over the change and act on what it finds. Skip it for
-docs-only changes.
+`/code-review` runs **twice** per feature: once at step 5, before Artem sees the
+change, and again at step 8 after bug fixes, so fixes don't reach the PR
+unreviewed. Skip both on the Docs lane.
 
-**`/code-review` is the single review path in this project.** The
+**The built-in `/code-review` is the single review path in this project.** The
 `code-review` marketplace plugin and `superpowers`' `requesting-code-review` /
-`receiving-code-review` skills were deliberately removed/disabled rather than
-left alongside it — the built-in one is the only one that reviews a *local*
-diff (so it fits the small-step TDD rhythm, before a PR exists) and can still
-comment on a PR later with `--comment`. Don't reintroduce a second one.
+`receiving-code-review` skills were deliberately uninstalled/disabled rather
+than left alongside it — the built-in one is the only one that reviews a *local*
+diff (so it fits the small-step test-first rhythm, before a PR exists) and can
+still comment on a PR later with `--comment`. Don't reintroduce a second one.
 
 ### Code style / linting
 - ESLint (flat config, `eslint.config.js`) catches baseline issues (unused
