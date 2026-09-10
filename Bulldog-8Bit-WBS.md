@@ -322,6 +322,56 @@ where it first matters (the "already satisfied" ones hold for Alpha).
 
 ---
 
+## Epic 12 — PROC: Process, Tooling & Project Docs
+
+Everything that isn't the game itself: the delivery process, the toolchain, and
+the planning documents. This epic exists so that **every change can link to an
+Epic** (see `CLAUDE.md` → The agreed delivery flow) — without it, process and
+docs work would be the one kind of change with nowhere to hang, which is exactly
+the untraceable mess the rule is meant to prevent.
+
+Most PROC work takes the **Docs lane** (no `src/` changes): link, branch, PR,
+merge. It does not need a spec or a technical design.
+
+- **PROC-1 — Delivery flow & branch protection** ✅ Done
+  The agreed per-feature flow, the `main` ruleset, and the CI gate, documented in
+  `CLAUDE.md`. Merged to `main` (PR #7).
+
+- **PROC-2 — Project README** ✅ Done
+  Project overview, status, and screenshot. Merged to `main` (PR #6).
+
+- **PROC-3 — Planning trackers** ✅ Done
+  `Bulldog-8Bit-WBS.md`, `Bulldog-8Bit-Checklist.md` and `Bulldog-8Bit-Roadmap.md`,
+  kept current via the `update-checklist` skill. Most recently PR #13.
+
+- **PROC-4 — Test-first scope + single code-review path** 🔲 In progress
+  As a developer, I want tests to be written *before* the code they cover for
+  pure logic, so that a test can disagree with the implementation instead of
+  agreeing with it by construction. Prompted by the observation that the suite
+  was never red: a mutation check caught 12 of 13 injected bugs, confirming the
+  tests are sound and that the real gap is *where they come from*. Scoped to
+  `src/physics/` and `src/state/`; the Phaser Scene is explicitly exempt, which
+  is also what resolves the conflict with the `superpowers`
+  `test-driven-development` skill's exception-free wording. Same change settles
+  `/code-review` as the one review path (the marketplace plugin uninstalled,
+  `superpowers`' two review skills disabled) and restructures the delivery flow
+  into three lanes.
+
+- **PROC-5 — Claude Code skills: vendored, no plugins** ✅ Done
+  As a developer, I want exactly the skills this project uses and nothing else,
+  so that unwanted workflows aren't sitting in every session waiting to be
+  invoked. `brainstorming`, `test-driven-development` and `systematic-debugging`
+  are copied into `.claude/skills/` from the `superpowers` plugin (MIT, Jesse
+  Vincent) and the plugin is uninstalled.
+  **Why copied rather than installed:** Claude Code has no way to disable an
+  individual skill of a plugin — `skillOverrides` is skipped outright for
+  plugin-sourced skills (verified in the CLI, v2.1.259: the resolver returns
+  `"on"` before it ever reads the setting), and `pluginConfigs` only covers MCP
+  servers and manifest options. Installing was all-or-nothing, and the plugin's
+  other 11 skills included the two code-review ones that PROC-4 deliberately
+  ruled out. Vendoring also allowed the copies to be trimmed and adapted — see
+  `CLAUDE.md` → Claude Code skills. Trade-off accepted: no upstream updates.
+
 ## Deliberately out of scope for v1
 
 - Multiplayer / co-op.
@@ -370,10 +420,12 @@ Carried-over assumptions from the redesign:
 
 ## Summary
 
-**11 Epics, 65 features (60 active + 5 cut):** *(+1: CHAR-9, per-color sprite sheets)*
-- ✅ 22 done or already satisfied (17 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11 — plus 5 NFRs met by existing config/process)
+**12 Epics, 70 features (65 active + 5 cut):** *(+1: CHAR-9, per-color sprite
+sheets; +5: the new PROC epic, which covers process/tooling/docs work so that
+every change can link to an Epic)*
+- ✅ 26 done or already satisfied (21 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3/5 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 36 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 37 backlog or in progress *(includes PROC-4)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 

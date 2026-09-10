@@ -292,7 +292,7 @@ Buldog_8bit/
 │  ├─ physics/         # Pure, unit-tested game logic (e.g. player.js + player.test.js)
 │  └─ assets/          # (planned) images, tilemaps, audio
 ├─ specs/              # Feature specs (spec-driven workflow); _TEMPLATE.md to start one
-├─ .claude/skills/      # Project-specific Claude Code skills, e.g. story-unit-tests
+├─ .claude/skills/     # Claude Code skills (see below)
 └─ CLAUDE.md           # This file
 ```
 
@@ -344,29 +344,84 @@ Consequences to work with, not around:
   commit signing is set up first. Set up signing before re-enabling it, not
   after.
 
-#### The agreed delivery flow (per feature)
+#### The agreed delivery flow
 
-This is the order every feature follows. **Claude never merges to `main`
-directly** — the PR + Artem's approval is the gate.
+**Claude never merges to `main` directly** — the PR + Artem's approval is the
+gate, on every lane.
 
-1. **Approved requirements (spec).** A spec in `specs/` is written and
-   **approved by Artem** before anything else.
-2. **Claude presents a plan + risk level.** Claude lays out the approach and
-   rates its **risk** (see the rubric below). This tells Artem whether the
-   requirements are solid and the plan is clear enough to proceed.
-3. **Technical design → approved by Artem.** Before writing any code, Claude
-   writes the **technical design** (see below) and Artem approves it.
-   **Implementation does not start until the design is approved.**
-4. **Claude implements (locally).** Built on a feature branch, with unit tests
-   and a green local `lint` / `test` / `build`.
-5. **Artem reviews & tests the results.** Artem runs it locally (dev server /
-   playtest) and reviews the behavior.
-6. **Artem confirms it works as expected.** Explicit go-ahead — not assumed.
-7. **Claude creates the PR.** Claude pushes the feature branch and opens the
-   PR into `main` (if the `gh` CLI isn't available, Claude pushes the branch
-   and provides the compare URL for Artem to open the PR).
-8. **Artem approves the PR in GitHub.**
-9. **Merge completed** — the PR is merged into `main`.
+##### Every change links to an Epic
+
+Before anything else, the change is tied to at least an **Epic** in
+`Bulldog-8Bit-WBS.md`, and to a **Feature ID** (`MOVE-7`, `CHAR-3`, …) whenever
+one fits. No orphan changes — a repo where work isn't traceable back to the
+plan becomes a mess fast.
+
+- If the work matches an existing Feature, use its ID.
+- If it fits an Epic but no Feature, **add the Feature row to the WBS first**
+  (in the same branch), then build it.
+- Process, tooling and planning-doc work lives under **Epic 12 — PROC**, which
+  exists precisely so this kind of change has somewhere to hang.
+
+The Feature/Epic ID goes in the branch name, the PR title, and the spec.
+
+##### Which lane a change takes
+
+The lane is chosen by what the change *is*, not by how it feels in the moment
+— it is easy to talk yourself into the cheap lane for a 700-line diff.
+
+| Lane | What it covers | Steps |
+|---|---|---|
+| **Docs** | Checklists, README, WBS/roadmap, planning docs — no `src/` changes at all | Link to Epic → branch → PR → merge |
+| **Small change** | Touches one module, no new mechanic, no new module (tuning, a follow-up fix, a small extension of existing logic) | 1–2 merged into one short spec, then 4–9 |
+| **Feature** | A new mechanic, a new module, or anything that reads as a story (every real feature so far has been 450–950 lines across 7–10 files) | All of 1–9 |
+
+##### The steps
+
+1. **Approved requirements (spec).** A spec in `specs/`, linked to its
+   Feature/Epic ID, **approved by Artem** before anything else.
+2. **Claude presents a plan + risk level.** The approach, plus a **risk rating**
+   (see the rubric below) with the actual assumptions listed. **This is the only
+   step that carries a risk rating** — later steps run on requirements that are
+   already settled, so a rating there would be a ritual number rather than a
+   decision. At **High**, Claude stops and asks rather than proceeding.
+3. **Technical design → approved by Artem.** Written into the feature's spec
+   file. **Implementation does not start until the design is approved.** This
+   gate stays separate from step 1 on purpose: it is the checkpoint that catches
+   Claude planning to build the wrong thing (or hallucinating an approach)
+   *before* any code exists, which is the cheapest place to catch it.
+4. **Claude implements (locally), test-first.** On a feature branch named for
+   the Feature ID. Pure logic in `src/physics/` and `src/state/` gets its test
+   written **first**, from the spec's acceptance criteria, and **run so the
+   failure is seen** before the implementation exists (see Testing strategy →
+   Test-first). Scene code in `src/main.js` is exempt — it can't be unit tested.
+5. **Claude self-reviews.** `/code-review` over the change; act on the findings.
+6. **Claude verifies, with evidence.** `lint` / `test` / `build` all green, and
+   Claude **shows the actual command output** rather than asserting it passed.
+   A claim of "all green" without the output is not a verification.
+7. **Test checklist → Artem tests.** Claude writes a playtest checklist from the
+   spec's acceptance criteria (into the spec file), and Artem plays it.
+8. **Bug fixes.** For each bug Artem finds:
+   - Use `systematic-debugging` — understand the cause before proposing a fix.
+   - **Write a failing test first**, then fix it. Bugs found in real play are the
+     most valuable tests there are: they come from reality rather than from
+     Claude's reading of the spec, which is exactly the blind spot that makes
+     after-the-fact tests agree with the code. If the bug is in the Scene and no
+     unit test can express it, that is a signal to extract the rule into
+     `src/physics/` or `src/state/` — not a reason to skip the test.
+   - **Re-run `/code-review` after the fixes**, so fixes don't reach the PR
+     unreviewed.
+   - If the *requirements* turn out to be wrong rather than the code, go back to
+     step 1. That is a spec change, not a bug fix — don't let scope creep in
+     disguised as fixing.
+9. **Artem confirms → PR → merge.** On Artem's explicit go-ahead (not assumed),
+   Claude pushes the branch and opens the PR into `main` (if the `gh` CLI isn't
+   available, Claude pushes and provides the compare URL). Checklist and
+   WBS-status updates ride along **in the same PR** as the feature, so they can't
+   drift — except the "merged" tick itself, which can only be made afterwards.
+   CI (`build-and-test`) must be green. **Artem approves and merges.**
+
+After a batch of large features closes, README and the broader documentation get
+a pass of their own (Docs lane).
 
 #### Technical design (step 3)
 
@@ -423,6 +478,47 @@ written, not after.
 - Manual playtesting still decides whether something *feels* right (jump
   height, walk speed) — tests check the rules, not the feel.
 
+#### Test-first (TDD) — where it applies, and where it deliberately doesn't
+
+Tests here have historically been written *after* the code they cover, by the
+same author, from the same mental model. That makes them agree with the
+implementation by construction: if a requirement was misread, the code and the
+test are wrong together and stay green. A mutation check (deliberately breaking
+the logic to see whether the suite notices) caught 12 of 13 injected bugs, so
+the tests themselves are sound — the gap is *where they come from*, not how
+carefully they're written.
+
+So, for **pure logic** — `src/physics/` and `src/state/` — write the test
+**first**, from the spec's acceptance criteria, and **watch it fail** before
+writing the implementation. A test derived from the requirement can disagree
+with the code; a test derived from the code cannot.
+
+**This does not apply to the Phaser Scene (`src/main.js`).** Scene code can't
+be unit tested outside a browser/canvas (see the first bullet above), so there
+is no failing test to write first. Scene changes are verified by manual
+playtest, exactly as before. If a rule inside the Scene *could* be a pure
+function, that's a signal to extract it into `src/physics/` or `src/state/` and
+TDD it there — not a reason to relax the rule.
+
+> The `test-driven-development` skill in `.claude/skills/` enforces this. It
+> states an exception-free "no production code without a failing test first";
+> the vendored copy is **scoped to pure logic**, because applied to the Scene
+> that rule is unachievable. This section is what wins for this repo.
+
+#### Code review — one path, two passes
+
+`/code-review` runs **twice** per feature: once at step 5, before Artem sees the
+change, and again at step 8 after bug fixes, so fixes don't reach the PR
+unreviewed. Skip both on the Docs lane.
+
+**The built-in `/code-review` is the single review path in this project.** It is
+the only one that reviews a *local* diff — which is what the small-step
+test-first rhythm needs, before a PR exists — and it can still comment on a PR
+later with `--comment`. The `code-review` marketplace plugin (PR-only) and
+`superpowers`' `requesting-code-review` / `receiving-code-review` were
+deliberately dropped rather than left alongside it. Don't reintroduce a second
+one.
+
 ### Code style / linting
 - ESLint (flat config, `eslint.config.js`) catches baseline issues (unused
   vars, undefined globals, etc.). Run via `npm run lint`; CI fails on lint
@@ -436,6 +532,38 @@ written, not after.
 - One scene per file under `src/scenes/`; keep `main.js` focused on config.
 - Prefer small, testable steps. After adding a feature, confirm the dev server
   still runs and the canvas renders without console errors.
+
+### Claude Code skills — vendored, not plugged in
+
+`.claude/skills/` holds every skill this project uses, checked into the repo:
+
+| Skill | Origin | Used at |
+|---|---|---|
+| `story-unit-tests` | ours | adding tests to an existing story |
+| `update-checklist` | ours | after a merge, and after non-code work |
+| `brainstorming` | vendored | step 1, when a feature has no spec yet |
+| `test-driven-development` | vendored | step 4 |
+| `systematic-debugging` | vendored | step 8 |
+
+The three vendored ones come from the `superpowers` plugin by Jesse Vincent
+(MIT — `.claude/skills/SUPERPOWERS-LICENSE.txt`). They were **copied in and the
+plugin uninstalled**, rather than kept installed, because **Claude Code cannot
+disable an individual skill of a plugin**: `skillOverrides` is skipped outright
+for plugin-sourced skills, and `pluginConfigs` only covers MCP servers and
+manifest options. Installing the plugin was therefore all-or-nothing — its other
+11 skills would have stayed listed and usable, including the two review skills
+this project deliberately does not want (see Code review above).
+
+Vendoring also let the copies be trimmed and adapted, which is the bigger win:
+`test-driven-development` is scoped to pure logic so it stops contradicting
+Testing strategy; `brainstorming`'s visual companion (a local Node HTTP server)
+was left out as a dependency this repo has no use for; `systematic-debugging`'s
+skill-testing fixtures were left out. Each vendored file carries an attribution
+note saying what was changed.
+
+Consequences: these skills **do not receive upstream updates** — re-vendor by
+hand if that is ever wanted. And each is now project code: edit them freely to
+fit this repo, and they go through the normal PR flow like anything else.
 
 ### Keep the tech stack consistent — no "tech zoo"
 
