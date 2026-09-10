@@ -15,9 +15,17 @@
 > (technical design) presented together. No code written yet.
 >
 > Decisions already made with Artem before drafting: nickname is **typed
-> normally on the keyboard** (not an arcade letter-wheel), **max 8 characters,
-> A-Z 0-9**, nothing is **persisted between browser sessions**, GAME OVER
-> returns **to this screen**, and the screen lives in **its own Phaser Scene**.
+> normally on the keyboard** (not an arcade letter-wheel), **A-Z 0-9**, nothing
+> is **persisted between browser sessions**, GAME OVER returns **to this
+> screen**, and the screen lives in **its own Phaser Scene**.
+>
+> **v2, after the first playtest.** Four changes, all from Artem playing it:
+> the nickname is now **required** (3-10 characters) rather than optional with
+> a `PLAYER` fallback; the length cap went **8 → 10**; the name is drawn in
+> **black** so it stands out from the white text around it; and it is drawn one
+> size **smaller** (8px, not 16px). The `PLAYER` fallback and the
+> `nicknameDraft` registry key are gone — with a required name, neither has
+> anything left to do.
 
 ---
 
@@ -38,8 +46,10 @@ labelled with my name.
 
 **In scope**
 - A `StartScene` shown first when the game loads.
-- **Nickname entry** (`UI-2`): typed on the keyboard, up to 8 characters,
+- **Nickname entry** (`UI-2`): typed on the keyboard, **3 to 10 characters**,
   `A-Z 0-9` only, auto-uppercased, `Backspace` deletes, blinking cursor.
+- **The name is required**: the run cannot start until it is at least 3
+  characters long, and the screen says so instead of just refusing.
 - **Color select** (`CHAR-4`'s UI): left/right arrows cycle white → black →
   red, shown live on a tinted bulldog preview sprite.
 - **ENTER starts the run**: stores the nickname and color, resets hearts and
@@ -70,16 +80,18 @@ labelled with my name.
       `A` — input is uppercased.
 - [ ] Given any nickname, when the player types a character that is not
       `A-Z`/`a-z`/`0-9` (space, `-`, `!`, `Ж`), then the nickname is unchanged.
-- [ ] Given a nickname of 8 characters, when the player types another
-      character, then the nickname is unchanged — 8 is the hard cap.
+- [ ] Given a nickname of 10 characters, when the player types another
+      character, then the nickname is unchanged — 10 is the hard cap.
 - [ ] Given a nickname of at least one character, when `Backspace` is pressed,
       then the last character is removed.
 - [ ] Given an empty nickname, when `Backspace` is pressed, then it stays empty
       (no error, no underflow).
-- [ ] Given an empty nickname, when the run is finalized, then the stored
-      nickname is `PLAYER` — the fallback.
-- [ ] Given a non-empty nickname, when the run is finalized, then it is stored
-      as typed (already uppercase, already within 8 characters).
+- [ ] Given a nickname shorter than 3 characters (empty, `A`, `AL`), when it is
+      checked, then it is **not** valid — the run cannot start.
+- [ ] Given a nickname of exactly 3 characters, when it is checked, then it is
+      valid — 3 is the minimum, not one more than it.
+- [ ] Given a nickname of 10 characters, when it is checked, then it is valid —
+      the cap is a legal length, not one past it.
 
 **Start screen behaviour (manual playtest)**
 - [ ] Given the game is loaded, when the page first opens, then the start
@@ -90,13 +102,21 @@ labelled with my name.
       bulldog preview visibly changes white → black → red → white; the left
       arrow walks the same three colors backwards. (There is no color *name* on
       screen — the preview itself is the label, under a static `COLOR` heading.)
-- [ ] Given a typed nickname and a chosen color, when ENTER is pressed, then
+- [ ] Given a nickname shorter than 3 characters, when ENTER is pressed, then
+      nothing happens and the bottom line reads `MIN 3 LETTERS` instead of
+      `PRESS ENTER`.
+- [ ] Given the third character is typed, when it appears, then the bottom line
+      changes to `PRESS ENTER` without any other keypress.
+- [ ] Given a valid nickname and a chosen color, when ENTER is pressed, then
       the level starts with the bulldog in that color, 3 full hearts and
       `SCORE 000000`.
+- [ ] Given the start screen, when it is drawn, then the nickname is **black**
+      and one size smaller than the `BULDOG` heading, so it reads as the thing
+      being edited rather than as more of the surrounding white text.
 - [ ] Given a run that reached 0 hearts, when ENTER is pressed on GAME OVER,
       then the start screen appears again with the previous nickname and color
-      still shown, and pressing ENTER again starts a fresh run with 3 hearts
-      and score 0.
+      still shown (already valid, so `PRESS ENTER` is showing), and pressing
+      ENTER again starts a fresh run with 3 hearts and score 0.
 - [ ] Given the start screen, when `F` is pressed, then the letter `F` is
       typed into the nickname and fullscreen does **not** toggle.
 - [ ] Given the start screen, when the on-screen fullscreen button is clicked,
@@ -116,12 +136,14 @@ Layout on the 320x240 canvas, using the shared styles from
             B U L D O G                   40    TITLE_TEXT_STYLE
 
           ENTER YOUR NAME                 88    TEXT_STYLE
-              ARTEM_                     104    16px, cursor blinks
+              ARTEM_                     104    NICKNAME_TEXT_STYLE
+                                               (8px, black), cursor blinks
 
                COLOR                     136    TEXT_STYLE
             <  [dog]  >                  156    live tinted sprite
 
             PRESS ENTER                  200    TEXT_STYLE, blinks
+                                               (MIN 3 LETTERS while too short)
 ```
 
 Everything is horizontally centered on x=160 (`setOrigin(0.5)`), matching how
@@ -131,10 +153,10 @@ the GAME OVER overlay is already drawn.
 
 | Key | Effect |
 |---|---|
-| `A-Z`, `0-9` | Append the character to the nickname (uppercased) |
+| `A-Z`, `0-9` | Append the character to the nickname (uppercased, max 10) |
 | `Backspace` | Delete the last character |
 | `←` / `→` | Previous / next bulldog color |
-| `Enter` | Start the run |
+| `Enter` | Start the run — ignored while the nickname is shorter than 3 |
 
 **Fullscreen is the on-screen button here, not the `F` key.** `F` is a legal
 nickname character, so on this screen it must type a letter; the level keeps
@@ -144,8 +166,18 @@ in `index.html`, which works regardless of which scene is running.
 Apart from that button, there is no mouse interaction — keyboard only, like the
 rest of the game.
 
-**Blinking.** The cursor after the nickname and the `PRESS ENTER` line both
-blink on a ~500 ms Phaser timer. Two separate visual hints, one timer.
+**Blinking.** The cursor after the nickname and the bottom line both blink on a
+~500 ms Phaser timer. Two separate visual hints, one timer.
+
+**The bottom line is the validation message.** It reads `MIN 3 LETTERS` while
+the name is too short and `PRESS ENTER` once it is long enough, so the screen
+never silently refuses a keypress — the reason is already on screen before the
+player tries.
+
+**The name is black and small.** Everything else on the screen is white 8px;
+the name is black at the same 8px, which is what separates "the field you are
+editing" from "labels" without adding a box or a highlight — and black on the
+NES sky blue is the strongest contrast the palette offers.
 
 **The bulldog preview** is a normal sprite using the existing `buldog` idle
 animation, tinted with `colorToTint()` — the same call the level makes, so the
@@ -173,16 +205,16 @@ outlives `scene.restart()` and `scene.start()`:
 
 | Registry key | Written by | Read by | Value |
 |---|---|---|---|
-| `nickname` | `StartScene` on ENTER | `UI-5` (later) | `"ARTEM"`, `"PLAYER"` — finalized |
-| `nicknameDraft` | `StartScene` on ENTER | `StartScene` on re-entry | `"ARTEM"`, `""` — exactly what was typed |
+| `nickname` | `StartScene` on ENTER | `UI-5` (later), `StartScene` on re-entry | `"ARTEM"` |
 | `color` | `StartScene` on ENTER | `BootScene` (already) | `"white"` / `"black"` / `"red"` |
 | `hearts` | `StartScene` on ENTER (reset) | `BootScene` (already) | `3` |
 | `score` | `StartScene` on ENTER (reset) | `BootScene` (already) | `0` |
 
-Two nickname keys rather than one: `finalizeNickname()` turns an empty name
-into `PLAYER`, and re-showing *that* would look as if the player had typed it
-— they would have to backspace six times to clear a name they never entered.
-`UI-5` reads `nickname`; only this screen reads `nicknameDraft`.
+One nickname key is enough because the name is required: what is stored is
+always exactly what the player typed, so re-showing it on a return from GAME
+OVER can't surprise them with a name they never entered. (An earlier draft kept
+a separate `nicknameDraft` for precisely that risk, back when an empty name
+became `PLAYER`.)
 
 Resetting `hearts` and `score` **on this screen** rather than in the level is
 what makes "start screen = new run" true in one place: the level keeps its
@@ -190,12 +222,13 @@ existing rule of reading whatever the registry holds.
 
 ## 7. Edge cases & error handling
 
-- **Empty nickname + ENTER** — allowed; stored as `PLAYER`. The player is never
-  blocked from starting.
+- **Too-short nickname + ENTER** — the run does not start, and the bottom line
+  is already explaining why. Nothing flashes red and nothing is destructive;
+  the player types another letter and carries on.
 - **Keys that are not characters** (Shift, Tab, arrows, F-keys) never leak into
   the nickname: the module filters by allowed character, it does not blacklist
   keys.
-- **Held-down key auto-repeat** is accepted as normal typing — the 8-character
+- **Held-down key auto-repeat** is accepted as normal typing — the 10-character
   cap stops it from running away.
 - **Non-Latin input** (Cyrillic, accents) is silently ignored, because
   Press Start 2P has no glyphs for it and would render blank boxes. An
@@ -282,18 +315,18 @@ already plans for, not a new pattern.
 Pure, no Phaser import, unit-tested:
 
 ```js
-export const MAX_NICKNAME_LENGTH = 8;
-export const DEFAULT_NICKNAME = "PLAYER";
+export const MIN_NICKNAME_LENGTH = 3;
+export const MAX_NICKNAME_LENGTH = 10;
 
 export function isAllowedChar(char)          // true for A-Z, a-z, 0-9 (single char)
 export function typeChar(nickname, char)     // -> nickname + uppercase char,
                                              //    unchanged if disallowed or full
 export function backspace(nickname)          // -> nickname without last char
-export function finalizeNickname(nickname)   // -> trimmed, or DEFAULT_NICKNAME if empty
+export function isNicknameValid(nickname)    // -> is it long enough to start a run?
 ```
 
-Every rule that could be got wrong (the cap, the filter, the uppercasing, the
-fallback) lives here where a test can disagree with it. The scene holds only
+Every rule that could be got wrong (both length bounds, the filter, the
+uppercasing) lives here where a test can disagree with it. The scene holds only
 the current string and paints it.
 
 `src/state/` is the right home: it sits beside `color-select.js`, `health.js`
@@ -314,8 +347,10 @@ A thin Phaser adapter, in the shape the rest of the code already uses:
   One listener rather than a mix of listener and polled `Key` objects, because
   the nickname is inherently event-driven; `ENTER` ignores events with
   `event.repeat` set, which is exactly the key-held-from-GAME-OVER case in §7.
-- `startRun()` — on ENTER: writes `nickname`, `color`, `hearts`, `score` into
-  the registry, then `this.scene.start("BootScene")`.
+- `startRun()` — on ENTER: returns immediately unless `isNicknameValid()`, then
+  writes `nickname`, `color`, `hearts`, `score` into the registry and calls
+  `this.scene.start("BootScene")`. The guard lives here, in the one place a run
+  can begin, rather than in the key handler.
 
 No game logic lives here beyond wiring — the rules are in `nickname.js` and
 `color-select.js`.
@@ -339,7 +374,10 @@ holding mutable state.
 
 ### Reuse
 
-- Typography: `TEXT_STYLE` / `TITLE_TEXT_STYLE` (`UI-3`) — unchanged.
+- Typography: `TEXT_STYLE` / `TITLE_TEXT_STYLE` (`UI-3`), plus one addition —
+  `NICKNAME_TEXT_STYLE` (the same 8px face in black) added *to that same
+  module* rather than styled inline here, so the game's text still has exactly
+  one place that decides what text looks like.
 - Color: `nextColor()` / `colorToTint()` / `DEFAULT_COLOR` (`CHAR-4`) —
   unchanged; this screen is the UI those functions were written for. `←` needs
   a *previous* color: added as a `previousColor()` sibling in
@@ -352,8 +390,8 @@ holding mutable state.
 ### Test plan
 
 **Unit (Vitest, written first, from §4):** `src/state/nickname.test.js` —
-uppercasing, disallowed characters, the 8-character cap, backspace including on
-empty, and both `finalizeNickname()` branches. Plus one added case in
+uppercasing, disallowed characters, the 10-character cap, backspace including on
+empty, and `isNicknameValid()` at and around both bounds. Plus one added case in
 `src/state/color-select.test.js` for `previousColor()` (each transition and the
 unknown-value fallback).
 
@@ -374,8 +412,14 @@ criteria.
 - [ ] Typing shows uppercase characters immediately, with a cursor blinking
       after them; the name stays centered and does not twitch as it blinks.
 - [ ] `PRESS ENTER` blinks.
+- [ ] The name is black and smaller than the `BULDOG` heading, and reads
+      clearly against the sky-blue background.
 - [ ] Space, `-`, `!` and Cyrillic letters produce nothing at all.
-- [ ] The name stops at 8 characters, however long you hold a key.
+- [ ] The name stops at 10 characters, however long you hold a key.
+- [ ] With 0, 1 or 2 letters the bottom line reads `MIN 3 LETTERS` and ENTER
+      does nothing; the third letter switches it to `PRESS ENTER`.
+- [ ] Backspacing from 3 letters to 2 switches the line back to
+      `MIN 3 LETTERS`.
 - [ ] `Backspace` deletes; pressing it on an empty name does nothing bad.
 - [ ] `→` walks the preview white → black → red → white; `←` walks it back.
 - [ ] `F` types the letter `F` and does **not** toggle fullscreen.

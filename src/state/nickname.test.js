@@ -1,15 +1,14 @@
 // Unit tests for the pure nickname rules. These map directly to the nickname
 // acceptance criteria in specs/start-screen.md Section 4 (UI-2) — the allowed
-// characters, the uppercasing, the 8-character cap, backspace, and the
-// PLAYER fallback.
+// characters, the uppercasing, both length bounds, and backspace.
 import { describe, expect, it } from "vitest";
 import {
+  MIN_NICKNAME_LENGTH,
   MAX_NICKNAME_LENGTH,
-  DEFAULT_NICKNAME,
   isAllowedChar,
   typeChar,
   backspace,
-  finalizeNickname,
+  isNicknameValid,
 } from "./nickname.js";
 
 describe("isAllowedChar", () => {
@@ -71,17 +70,37 @@ describe("backspace", () => {
   });
 });
 
-describe("finalizeNickname", () => {
-  it("keeps a typed nickname as it is", () => {
-    expect(finalizeNickname("ARTEM")).toBe("ARTEM");
+describe("isNicknameValid", () => {
+  it("rejects a nickname shorter than the minimum", () => {
+    expect(isNicknameValid("")).toBe(false);
+    expect(isNicknameValid("A")).toBe(false);
+    expect(isNicknameValid("AL")).toBe(false);
   });
 
-  it("falls back to PLAYER when nothing was typed", () => {
-    expect(finalizeNickname("")).toBe(DEFAULT_NICKNAME);
+  it("accepts a nickname of exactly the minimum length", () => {
+    // The boundary itself is legal — 3 is the minimum, not one below it.
+    expect(isNicknameValid("A".repeat(MIN_NICKNAME_LENGTH))).toBe(true);
   });
 
-  it("falls back to PLAYER for an unset value", () => {
-    // The registry can hand back undefined on the very first run.
-    expect(finalizeNickname(undefined)).toBe(DEFAULT_NICKNAME);
+  it("accepts a nickname of exactly the maximum length", () => {
+    expect(isNicknameValid("A".repeat(MAX_NICKNAME_LENGTH))).toBe(true);
+  });
+
+  it("rejects an unset value", () => {
+    // The registry hands back undefined on the very first run.
+    expect(isNicknameValid(undefined)).toBe(false);
+  });
+});
+
+describe("nickname length bounds", () => {
+  // The other tests all read these constants, so they would stay green if the
+  // bounds were changed by mistake. These two pin the numbers the spec asks
+  // for (specs/start-screen.md Section 4).
+  it("requires at least 3 characters", () => {
+    expect(MIN_NICKNAME_LENGTH).toBe(3);
+  });
+
+  it("allows at most 10 characters", () => {
+    expect(MAX_NICKNAME_LENGTH).toBe(10);
   });
 });

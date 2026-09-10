@@ -7,12 +7,13 @@
 // uppercasing, the empty-name fallback — lives here where a test can disagree
 // with it.
 
-// Eight characters is what fits comfortably on the 320px-wide screen in the
-// 16px font, and later in a scoreboard row (BOARD, [Beta]).
-export const MAX_NICKNAME_LENGTH = 8;
+// A name is REQUIRED, not optional: three characters is the classic arcade
+// minimum, and the run cannot start below it (specs/start-screen.md v2).
+export const MIN_NICKNAME_LENGTH = 3;
 
-// What a player who just presses ENTER without typing is called.
-export const DEFAULT_NICKNAME = "PLAYER";
+// Ten characters still fits the 320px-wide screen in the 8px font, and later a
+// scoreboard row (BOARD, [Beta]).
+export const MAX_NICKNAME_LENGTH = 10;
 
 // Only A-Z and 0-9 are accepted, because Press Start 2P has glyphs for nothing
 // else — a Cyrillic or accented letter would render as a blank box.
@@ -39,8 +40,11 @@ export function backspace(nickname) {
   return nickname.slice(0, -1);
 }
 
-// Turn what was typed into the name the run is stored under. Only called once,
-// when the player starts the run.
-export function finalizeNickname(nickname) {
-  return nickname ? nickname : DEFAULT_NICKNAME;
+// Is this name long enough to start a run with? The start screen asks before
+// letting ENTER through, and shows the reason when the answer is no.
+//
+// There is no upper check here: typeChar() already makes a too-long name
+// impossible, so re-testing it would guard against nothing.
+export function isNicknameValid(nickname) {
+  return typeof nickname === "string" && nickname.length >= MIN_NICKNAME_LENGTH;
 }

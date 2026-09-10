@@ -58,25 +58,36 @@ class BootScene extends Phaser.Scene {
   // spritesheet is a 3-row x 11-col grid of 48x48 cells (idle/run/jump rows
   // extracted from the source art — see specs/character-sprite.md §5).
   preload() {
-    // Guarded: the start screen (UI-1) loads the same sheet for its preview and
-    // always runs first, so without this the loader warns about a key already
-    // in use on every run.
+    // EVERY load here is guarded, because this scene is created more than once:
+    // on every level restart after a hit, and again on every new run started
+    // from the start screen — which has itself already loaded the bulldog sheet
+    // for its preview. Re-adding a key that is already in the cache loads
+    // nothing and logs a warning (textures) or an error (audio), so the guards
+    // are what keep the console clean across a whole session.
     if (!this.textures.exists("buldog")) {
       this.load.spritesheet("buldog", buldogSheet, { frameWidth: 48, frameHeight: 48 });
     }
     // Small Bone collectible (specs/small-bones.md). Same 32x32-cell layout as
     // the bulldog sheet, so it loads the same way.
-    this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
-    this.load.audio("bone-pickup", bonePickupSfx);
+    if (!this.textures.exists("bone")) {
+      this.load.spritesheet("bone", boneSheet, { frameWidth: 32, frameHeight: 32 });
+    }
+    if (!this.cache.audio.exists("bone-pickup")) {
+      this.load.audio("bone-pickup", bonePickupSfx);
+    }
     // The simple stompable enemy (specs/simple-enemy-stomp.md). A 2x2 grid of
     // 25x25 cells — a placeholder cat standing in for the Angry Pomeranian,
     // deliberately a bit smaller than the 48x48 bulldog.
-    this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
+    if (!this.textures.exists("enemy")) {
+      this.load.spritesheet("enemy", enemySheet, { frameWidth: 25, frameHeight: 25 });
+    }
     // The HP hearts (specs/health-hearts.md). Two separate 32x32 images rather
     // than a spritesheet: that's how the art was supplied, and swapping an
     // image's texture is the simplest possible "this heart is gone".
-    this.load.image(HEART_TEXTURE.full, heartFullImg);
-    this.load.image(HEART_TEXTURE.empty, heartEmptyImg);
+    if (!this.textures.exists(HEART_TEXTURE.full)) {
+      this.load.image(HEART_TEXTURE.full, heartFullImg);
+      this.load.image(HEART_TEXTURE.empty, heartEmptyImg);
+    }
   }
 
   // create() runs once when the scene starts. This is where we build the
@@ -156,12 +167,14 @@ class BootScene extends Phaser.Scene {
     // The bone's idle bob. IMPORTANT: the sheet has 4 cells but only 3 drawn
     // frames — cell 3 is empty, so `end: 2` keeps a blank frame from flickering
     // through the loop.
-    this.anims.create({
-      key: "bone-idle",
-      frames: this.anims.generateFrameNumbers("bone", { start: 0, end: 2 }),
-      frameRate: 5,
-      repeat: -1,
-    });
+    if (!this.anims.exists("bone-idle")) {
+      this.anims.create({
+        key: "bone-idle",
+        frames: this.anims.generateFrameNumbers("bone", { start: 0, end: 2 }),
+        frameRate: 5,
+        repeat: -1,
+      });
+    }
 
     // Bones are static: they sit still and don't fall, so gravity/velocity
     // never apply to them.
@@ -228,12 +241,14 @@ class BootScene extends Phaser.Scene {
     // The enemy's only state is walking — it patrols non-stop, so there's no
     // idle animation to define. All four cells are used: cells 1 and 3 are
     // identical, which is what makes the loop a gentle A-B-C-B bob.
-    this.anims.create({
-      key: "enemy-walk",
-      frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
-      frameRate: 7,
-      repeat: -1,
-    });
+    if (!this.anims.exists("enemy-walk")) {
+      this.anims.create({
+        key: "enemy-walk",
+        frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
+        frameRate: 7,
+        repeat: -1,
+      });
+    }
 
     // A DYNAMIC group, unlike the bones' static one: enemies walk, fall, and
     // (once stomped) get launched, so they need real physics bodies.

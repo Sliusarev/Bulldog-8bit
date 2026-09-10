@@ -9,15 +9,28 @@
 import Phaser from "phaser";
 import { ANIMATIONS } from "../physics/animation.js";
 import { DEFAULT_COLOR, colorToTint, nextColor, previousColor } from "../state/color-select.js";
-import { backspace, finalizeNickname, typeChar } from "../state/nickname.js";
+import {
+  MIN_NICKNAME_LENGTH,
+  backspace,
+  isNicknameValid,
+  typeChar,
+} from "../state/nickname.js";
 import { resetHearts } from "../state/health.js";
 import { resetScore } from "../state/score.js";
-import { TEXT_STYLE, TITLE_TEXT_STYLE } from "../ui/text-style.js";
+import { NICKNAME_TEXT_STYLE, TEXT_STYLE, TITLE_TEXT_STYLE } from "../ui/text-style.js";
 import buldogSheet from "../assets/buldog.png";
 
 // How often the cursor and the PRESS ENTER prompt swap between shown and
 // hidden. ~500ms is the classic arcade blink: noticeable without being busy.
 const BLINK_INTERVAL_MS = 500;
+
+// The bottom line doubles as the validation message: it says what is missing
+// while the name is too short, and how to start once it isn't. The player
+// therefore never presses ENTER and gets silence.
+const PROMPT_READY = "PRESS ENTER";
+// Built from the rule's own constant, so the screen can never tell the player
+// to type a length that ENTER would then reject.
+const PROMPT_TOO_SHORT = `MIN ${MIN_NICKNAME_LENGTH} LETTERS`;
 
 export class StartScene extends Phaser.Scene {
   constructor() {
@@ -37,16 +50,16 @@ export class StartScene extends Phaser.Scene {
     // Both values come back out of the registry so returning here from GAME
     // OVER shows the previous run's setup instead of an empty screen. On the
     // very first run there is nothing stored, hence the fallbacks.
-    // The DRAFT, not the finalized nickname: finalizeNickname() turns an empty
-    // name into "PLAYER", and restoring that would look as if the player had
-    // typed it — six backspaces to clear a name they never entered.
-    this.nickname = this.registry.get("nicknameDraft") ?? "";
+    // A stored name is always exactly what the player typed (it had to be
+    // valid to get stored at all), so showing it again on a return from GAME
+    // OVER can't surprise them with a name they never entered.
+    this.nickname = this.registry.get("nickname") ?? "";
     this.color = this.registry.get("color") ?? DEFAULT_COLOR;
     this.blinkOn = true;
 
     this.add.text(160, 40, "BULDOG", TITLE_TEXT_STYLE).setOrigin(0.5);
     this.add.text(160, 88, "ENTER YOUR NAME", TEXT_STYLE).setOrigin(0.5);
-    this.nicknameText = this.add.text(160, 104, "", TITLE_TEXT_STYLE).setOrigin(0.5);
+    this.nicknameText = this.add.text(160, 104, "", NICKNAME_TEXT_STYLE).setOrigin(0.5);
 
     this.add.text(160, 136, "COLOR", TEXT_STYLE).setOrigin(0.5);
     this.add.text(112, 156, "<", TEXT_STYLE).setOrigin(0.5);
@@ -68,7 +81,7 @@ export class StartScene extends Phaser.Scene {
     this.preview = this.add.sprite(160, 152, "buldog", 0).setOrigin(0.5);
     this.preview.play(ANIMATIONS.idle.key);
 
-    this.pressEnterText = this.add.text(160, 200, "PRESS ENTER", TEXT_STYLE).setOrigin(0.5);
+    this.promptText = this.add.text(160, 200, PROMPT_READY, TEXT_STYLE).setOrigin(0.5);
 
     this.renderNickname();
     this.renderColor();
@@ -79,7 +92,7 @@ export class StartScene extends Phaser.Scene {
       callback: () => {
         this.blinkOn = !this.blinkOn;
         this.renderNickname();
-        this.pressEnterText.setVisible(this.blinkOn);
+        this.promptText.setVisible(this.blinkOn);
       },
     });
 
@@ -91,6 +104,10 @@ export class StartScene extends Phaser.Scene {
   }
 
   handleKey(event) {
+    // Shortcuts belong to the browser, not to the nickname: without this,
+    // Cmd+V / Ctrl+A / Cmd+Shift+3 each typed their letter into the name.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
     if (event.key === "Enter") {
       // Ignore auto-repeat: ENTER on the GAME OVER screen is what brought the
       // player here, and if it's still held its repeats must not shoot
@@ -124,6 +141,9 @@ export class StartScene extends Phaser.Scene {
   // name doesn't twitch left and right twice a second.
   renderNickname() {
     this.nicknameText.setText(this.nickname + (this.blinkOn ? "_" : " "));
+    // Re-derived from the name every time it changes, so the line is right
+    // after a keystroke AND after a backspace, with no separate bookkeeping.
+    this.promptText.setText(isNicknameValid(this.nickname) ? PROMPT_READY : PROMPT_TOO_SHORT);
   }
 
   renderColor() {
@@ -135,8 +155,12 @@ export class StartScene extends Phaser.Scene {
   // level is what lets the level keep its rule of trusting whatever the
   // registry holds (which is how hearts survive a mid-level restart).
   startRun() {
-    this.registry.set("nicknameDraft", this.nickname);
-    this.registry.set("nickname", finalizeNickname(this.nickname));
+    // The name is required. Refusing here — the single place a run can begin —
+    // rather than in the key handler means no other path can skip the check.
+    // The prompt line is already saying why nothing happened.
+    if (!isNicknameValid(this.nickname)) return;
+
+    this.registry.set("nickname", this.nickname);
     this.registry.set("color", this.color);
     this.registry.set("hearts", resetHearts());
     this.registry.set("score", resetScore());
