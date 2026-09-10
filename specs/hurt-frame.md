@@ -43,26 +43,26 @@ that damage reads clearly and I understand why the level just restarted.
 
 ## 4. Acceptance criteria
 
-- [ ] **AC1 — Hurt frame exists in the sheet.** Given the game loads
+- [x] **AC1 — Hurt frame exists in the sheet.** Given the game loads
       `src/assets/buldog.png`, then it contains a distinct squashed hurt pose
       at a known frame index, and the existing idle/run/jump frame indices are
       **unchanged**.
-- [ ] **AC2 — Hurt frame on a hit.** Given the bulldog is in play, when he
+- [x] **AC2 — Hurt frame on a hit.** Given the bulldog is in play, when he
       touches an enemy from the side, then the hurt frame is displayed for the
       whole hurt beat and no idle/run/jump animation plays over it.
-- [ ] **AC3 — Same on the last heart.** Given the bulldog has 1 heart, when he
+- [x] **AC3 — Same on the last heart.** Given the bulldog has 1 heart, when he
       is hit, then the same hurt frame plays for the same beat, and only then
       does the GAME OVER overlay appear.
-- [ ] **AC4 — Blinking flash.** Given the bulldog is in the hurt beat, then his
+- [x] **AC4 — Blinking flash.** Given the bulldog is in the hurt beat, then his
       tint alternates between the damage red and his selected color at a fixed
       interval (a visible blink, not a single static tint).
-- [ ] **AC5 — Color restored.** Given the hurt beat ends, when the level
+- [x] **AC5 — Color restored.** Given the hurt beat ends, when the level
       restarts, then the bulldog is drawn in the player's selected `CHAR-4`
       color (white / black / red) with no leftover red.
-- [ ] **AC6 — Red still reads on a red dog.** Given the player picked the red
+- [x] **AC6 — Red still reads on a red dog.** Given the player picked the red
       bulldog, when he is hit, then the damage state is still visually obvious
       (the blink, not the hue alone, carries the signal).
-- [ ] **AC7 — Nothing else regresses.** Given normal play, then movement,
+- [x] **AC7 — Nothing else regresses.** Given normal play, then movement,
       double jump, bone pickup, stomp, hearts and the level restart all behave
       exactly as before, and there are no console errors.
 
@@ -142,20 +142,20 @@ Things unit tests can't judge — verified by Artem on the dev server before the
 PR. Each is a **tuning** question: a "no" means adjust a constant / re-export
 the frame, not redesign the feature.
 
-- [ ] **Blink interval** (`HURT_FLASH_INTERVAL_MS`, starting at ~83ms → 3 red
+- [x] **Blink interval** (`HURT_FLASH_INTERVAL_MS`, starting at ~83ms → 3 red
       pulses per beat): does the blink read as a clear damage signal without
       being seizure-fast or sluggish? Try the value on all three hero colors —
       **red especially**, since that's where the hue alone carries least.
-- [ ] **Squash readability**: does the derived (script-squashed) hurt pose
+- [x] **Squash readability**: does the derived (script-squashed) hurt pose
       actually read as "he got hit"? If not, that's the trigger for
       commissioning a hand-drawn frame — the plumbing stays the same, only the
       pixels in frame 33 change.
-- [ ] **Beat length** (`HIT_PAUSE_MS = 500`): with a real pose on screen instead
+- [x] **Beat length** (`HIT_PAUSE_MS = 500`): with a real pose on screen instead
       of a flat tint, does 500ms still feel right — long enough to register the
       hit, short enough not to stall the restart?
-- [ ] **Hit while airborne**: the hurt frame takes over mid-fall and looks
+- [x] **Hit while airborne**: the hurt frame takes over mid-fall and looks
       intentional, not like a glitched jump.
-- [ ] **Last heart**: the hurt beat plays fully, then GAME OVER — and the dog
+- [x] **Last heart**: the hurt beat plays fully, then GAME OVER — and the dog
       under the overlay is in his selected color, not frozen mid-red.
 
 ## Technical design
