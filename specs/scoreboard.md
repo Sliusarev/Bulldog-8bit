@@ -71,6 +71,44 @@ As a **player finishing a run**, I want to **see my score ranked on a global lea
 **Local cache (fallback):**
 - `localStorage` key `bulldog8bit.highscores`, holding the last successfully fetched top-10 array. Used only when the online fetch fails.
 
+### Secrets & keys — decided: no key vault
+
+**No secrets manager or key vault is needed for this feature.** Decided
+up-front so it isn't re-litigated during the Plan step.
+
+The reason is that the only key the front-end holds — the Supabase **anon
+key** — is *public by design*. It ships inside `dist/` and any player can read
+it in DevTools; that is how the browser is meant to talk to the project. Putting
+it in a vault would change nothing about who can see it.
+
+**What actually protects the table is Row Level Security**, not the secrecy of
+the key: a policy that permits exactly `insert` and `select` on `highscores` and
+nothing else. If RLS is misconfigured, hiding the key does not save you; if RLS
+is right, a public key costs nothing. Treat the RLS policy as the security
+control and review it as such.
+
+Rules that follow:
+
+- **The `service_role` key must never be in the front-end, in the repo, or in
+  the bundle.** It bypasses RLS entirely. The scoreboard does not need it — if
+  something seems to require it, that is a signal the RLS policy is wrong, not
+  that the key belongs in the client.
+- Keep the URL + anon key in `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` in
+  `.env.local`, which `.gitignore` already excludes. Note that **anything with a
+  `VITE_` prefix is deliberately embedded into the client bundle** — that's the
+  point for the anon key, and exactly why no real secret may ever carry that
+  prefix.
+- If CI ever deploys the built game, its values go in **GitHub Actions
+  secrets** — not committed to `ci.yml`.
+- If a key is ever committed by accident, **rotate it in the Supabase dashboard**.
+  Removing it from the repo is not enough: git history keeps it.
+
+This stays within the existing stack — Vite env vars and GitHub's own secrets
+are both already there — which is what `CLAUDE.md` → "no tech zoo" asks for. A
+dedicated vault (1Password, HashiCorp Vault, AWS Secrets Manager) earns its
+place when there are real server-side secrets, several environments, or a team
+sharing access. None of those apply here.
+
 ## 7. Edge cases & error handling
 - **Network down / backend unreachable:** fall back to local cache, show offline notice, never crash.
 - **Submit succeeds but fetch fails (or vice-versa):** still render something sensible (cached list or the single new run); log, don't crash.
@@ -90,4 +128,4 @@ As a **player finishing a run**, I want to **see my score ranked on a global lea
 - Adds a new scene: `Victory / GameOver → Scoreboard → Title`.
 
 ## 9. Definition of done
-All Section 4 acceptance criteria pass, a score submitted on one device is visible on a second device (proving it's truly online), the offline fallback works when the network is cut, only public keys are in the front-end, the change is committed and pushed, and there are no console errors.
+All Section 4 acceptance criteria pass, a score submitted on one device is visible on a second device (proving it's truly online), the offline fallback works when the network is cut, only public keys are in the front-end (see § 6 → Secrets & keys — the `service_role` key must be absent from the bundle, and the RLS policy reviewed as the actual security control), the change is committed and pushed, and there are no console errors.
