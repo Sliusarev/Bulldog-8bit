@@ -86,9 +86,10 @@ labelled with my name.
       screen is the first thing shown — the level does not run behind it.
 - [ ] Given the start screen, when the player types, then the typed characters
       appear immediately with a blinking cursor after them.
-- [ ] Given the start screen, when the player presses left/right arrows, then
-      the bulldog preview visibly changes color white → black → red → white,
-      and the color label matches the preview.
+- [ ] Given the start screen, when the player presses the right arrow, then the
+      bulldog preview visibly changes white → black → red → white; the left
+      arrow walks the same three colors backwards. (There is no color *name* on
+      screen — the preview itself is the label, under a static `COLOR` heading.)
 - [ ] Given a typed nickname and a chosen color, when ENTER is pressed, then
       the level starts with the bulldog in that color, 3 full hearts and
       `SCORE 000000`.
@@ -96,9 +97,11 @@ labelled with my name.
       then the start screen appears again with the previous nickname and color
       still shown, and pressing ENTER again starts a fresh run with 3 hearts
       and score 0.
-- [ ] Given the start screen, when `F` is pressed, then fullscreen toggles
-      exactly as it does in the level (`NFR-11`), and the layout stays centered
-      and readable.
+- [ ] Given the start screen, when `F` is pressed, then the letter `F` is
+      typed into the nickname and fullscreen does **not** toggle.
+- [ ] Given the start screen, when the on-screen fullscreen button is clicked,
+      then fullscreen toggles (`NFR-11`) and the layout stays centered and
+      readable.
 - [ ] Given the start screen is open, when the player uses the keys the level
       uses (arrows, space), then nothing from the level happens — the level
       scene is not running.
@@ -132,9 +135,14 @@ the GAME OVER overlay is already drawn.
 | `Backspace` | Delete the last character |
 | `←` / `→` | Previous / next bulldog color |
 | `Enter` | Start the run |
-| `F` | Toggle fullscreen (`NFR-11`, same as in the level) |
 
-There is no mouse interaction — keyboard only, like the rest of the game.
+**Fullscreen is the on-screen button here, not the `F` key.** `F` is a legal
+nickname character, so on this screen it must type a letter; the level keeps
+its `F` shortcut, and `NFR-11` is satisfied on both screens by the HTML button
+in `index.html`, which works regardless of which scene is running.
+
+Apart from that button, there is no mouse interaction — keyboard only, like the
+rest of the game.
 
 **Blinking.** The cursor after the nickname and the `PRESS ENTER` line both
 blink on a ~500 ms Phaser timer. Two separate visual hints, one timer.
@@ -165,10 +173,16 @@ outlives `scene.restart()` and `scene.start()`:
 
 | Registry key | Written by | Read by | Value |
 |---|---|---|---|
-| `nickname` | `StartScene` on ENTER | `UI-5` (later) | `"ARTEM"`, `"PLAYER"` |
+| `nickname` | `StartScene` on ENTER | `UI-5` (later) | `"ARTEM"`, `"PLAYER"` — finalized |
+| `nicknameDraft` | `StartScene` on ENTER | `StartScene` on re-entry | `"ARTEM"`, `""` — exactly what was typed |
 | `color` | `StartScene` on ENTER | `BootScene` (already) | `"white"` / `"black"` / `"red"` |
 | `hearts` | `StartScene` on ENTER (reset) | `BootScene` (already) | `3` |
 | `score` | `StartScene` on ENTER (reset) | `BootScene` (already) | `0` |
+
+Two nickname keys rather than one: `finalizeNickname()` turns an empty name
+into `PLAYER`, and re-showing *that* would look as if the player had typed it
+— they would have to backspace six times to clear a name they never entered.
+`UI-5` reads `nickname`; only this screen reads `nicknameDraft`.
 
 Resetting `hearts` and `score` **on this screen** rather than in the level is
 what makes "start screen = new run" true in one place: the level keeps its
@@ -195,7 +209,8 @@ existing rule of reading whatever the registry holds.
 - **ENTER held from the GAME OVER screen** must not skip straight through the
   start screen into a new run. The scene only reacts to a fresh `Enter`
   keypress after it has been created (`JustDown`, checked from `update()`),
-  never to a key already down at creation time.
+  never to the auto-repeat of a key that was already held down when the scene
+  was created (the handler ignores `KeyboardEvent.repeat`).
 
 ## 8. Dependencies
 
@@ -208,8 +223,8 @@ existing rule of reading whatever the registry holds.
 - `STATE-1` — `resetHearts()` from `src/state/health.js`.
 
 **Must not break:**
-- The level (`BootScene`) keeps working exactly as it does today, minus the `C`
-  dev key. Hearts/score/color still carry across a level restart after a hit.
+- The level (`BootScene`) keeps working exactly as it does today, including its
+  `F` fullscreen key, minus the `C` dev key. Hearts/score/color still carry across a level restart after a hit.
 - `NFR-11` fullscreen (F key and the on-screen button) on both scenes.
 
 **Blocks / feeds:**
@@ -293,9 +308,12 @@ A thin Phaser adapter, in the shape the rest of the code already uses:
   `nickname` and `color` back out of the registry so a return from GAME OVER
   shows the previous run's setup; registers the key handlers; starts one
   ~500 ms blink timer.
-- Keyboard: one `keydown` listener for characters and `Backspace` (calling
-  `typeChar()` / `backspace()` and re-rendering the nickname text), plus
-  `left`/`right`/`ENTER`/`F` handled the same way the level handles keys.
+- Keyboard: a single `keydown` listener handles everything — characters and
+  `Backspace` (calling `typeChar()` / `backspace()` and re-rendering the
+  nickname text), the arrows (`nextColor()` / `previousColor()`), and `ENTER`.
+  One listener rather than a mix of listener and polled `Key` objects, because
+  the nickname is inherently event-driven; `ENTER` ignores events with
+  `event.repeat` set, which is exactly the key-held-from-GAME-OVER case in §7.
 - `startRun()` — on ENTER: writes `nickname`, `color`, `hearts`, `score` into
   the registry, then `this.scene.start("BootScene")`.
 
@@ -342,7 +360,38 @@ unknown-value fallback).
 **Manual playtest (the scene half of §4):** first-load order, live typing and
 blink, color preview matching the level's hero, ENTER starting a clean run,
 GAME OVER returning here with the previous setup, fullscreen on both scenes,
-and level keys doing nothing on the start screen.
+and level keys doing nothing on the start screen. Fullscreen is checked with
+the on-screen button on this screen (the `F` key belongs to the nickname here)
+and with the `F` key in the level.
+
+### Playtest checklist (workflow step 7)
+
+Run `npm run dev` and work down the list. Each line is one of §4's scene
+criteria.
+
+- [ ] The start screen is the first thing shown on a fresh page load; the level
+      is not running behind it (no bulldog, no hearts, no score visible).
+- [ ] Typing shows uppercase characters immediately, with a cursor blinking
+      after them; the name stays centered and does not twitch as it blinks.
+- [ ] `PRESS ENTER` blinks.
+- [ ] Space, `-`, `!` and Cyrillic letters produce nothing at all.
+- [ ] The name stops at 8 characters, however long you hold a key.
+- [ ] `Backspace` deletes; pressing it on an empty name does nothing bad.
+- [ ] `→` walks the preview white → black → red → white; `←` walks it back.
+- [ ] `F` types the letter `F` and does **not** toggle fullscreen.
+- [ ] The on-screen fullscreen button toggles fullscreen, the screen stays
+      centered and readable, and afterwards ENTER still starts the run rather
+      than re-toggling fullscreen.
+- [ ] ENTER starts the level: hero in the chosen color, 3 full hearts,
+      `SCORE 000000`.
+- [ ] In the level, `C` no longer changes the color (the dev key is gone).
+- [ ] Lose all 3 hearts → GAME OVER → ENTER returns to the start screen with
+      the previous name and color shown; holding ENTER does not shoot straight
+      through into a new run.
+- [ ] From there ENTER starts a fresh run: 3 hearts again, score back to 0.
+- [ ] Collect a bone, then take a hit: after the restart the score shows 0.
+- [ ] No console errors or warnings on either scene, including after a restart
+      and a return to the start screen.
 
 ### Open questions / assumptions + risk
 

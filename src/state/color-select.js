@@ -39,6 +39,17 @@ export function nextColor(current) {
   return COLORS[(index + 1) % COLORS.length];
 }
 
+// Step back to the previous color in the cycle. Wraps at the start
+// (white -> red), so the start screen's left arrow can walk the same three
+// colors backwards instead of forcing the player all the way around. Shares
+// nextColor's fallback: an unknown value lands on the default rather than
+// getting stuck.
+export function previousColor(current) {
+  const index = COLORS.indexOf(current);
+  if (index === -1) return DEFAULT_COLOR;
+  return COLORS[(index - 1 + COLORS.length) % COLORS.length];
+}
+
 // Map a color name to the hex to paint the hero with. Unknown/unset values
 // fall back to the default color's tint so we never return undefined (which
 // would make the sprite invisible or throw).
