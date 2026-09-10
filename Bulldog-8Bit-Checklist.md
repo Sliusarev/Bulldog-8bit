@@ -1,6 +1,6 @@
 # Bulldog 8-Bit — Progress Checklist
 
-Tick each box as you go. Current status: **Phase 1 complete → building the Alpha slice.**
+Tick each box as you go. Current status: **Phase 1 complete → building the Alpha slice** (next up: the start screen + nickname entry, `UI-1`/`UI-2`).
 
 > This checklist and `Bulldog-8Bit-Roadmap.md` are the **build-order** view.
 > The requirements catalog they pull from is `Bulldog-8Bit-WBS.md` (Epic >
@@ -17,25 +17,33 @@ Tick each box as you go. Current status: **Phase 1 complete → building the Alp
 > scoreboard** (both `[Beta]` now). Alpha shows a simple **local results
 > window** at the end instead.
 
-## Working method: spec-driven (SDLC mini-loop)
+## Working method: spec-driven
 
-For each feature marked 📄, run this mini-loop:
+> **The authoritative process is `CLAUDE.md` → "The agreed delivery flow"** — it
+> defines three lanes (Docs / Small change / Feature) and the nine steps a
+> feature goes through. Follow it there; the summary below is only an
+> orientation, and `CLAUDE.md` wins wherever they differ.
 
-1. **Spec** — copy `specs/_TEMPLATE.md`, fill it out for the feature (pull the requirement from the matching WBS ID, and set its `Scope:` tag).
-2. **Plan** — give the spec to Claude Code, ask for a plan + task list (no code yet).
-3. **Review** — check the plan against the spec (your PM step).
-4. **Implement** — build task by task, pulling pure logic into `src/physics/` (or similar) so it stays testable.
-5. **Test** — add/extend unit tests for that pure logic (use the `story-unit-tests` skill), and run the basic test checklist below. CI must stay green.
-6. **Verify** — tick every acceptance criterion in the spec, and confirm the dev server still runs and the canvas renders with no console errors, before marking the feature done.
+For each feature marked 📄:
 
-Small features (a placeholder square, tuning a jump) don't need a spec — just build them. Save specs in the `specs/` folder. `specs/scoreboard.md` is a worked example; `specs/alpha-scope.md` defines the Alpha slice as a whole.
+1. **Spec** — copy `specs/_TEMPLATE.md`, fill it out (pull the requirement from the matching WBS ID, set its `Scope:` tag, and link its Feature/Epic ID). **Approved before anything else.**
+2. **Plan + risk level** — Claude states the approach and rates its risk, listing the actual assumptions. This is the *only* step carrying a risk rating.
+3. **Technical design** — written into the spec file, approved before any code exists.
+4. **Implement, test-first** — pure logic in `src/physics/` and `src/state/` gets its test written **first, from the acceptance criteria, and run so the failure is seen**, before the implementation (use the `test-driven-development` skill). `src/main.js` is exempt — Scene code can't be unit tested; verify it by playtest.
+5. **Self-review** — `/code-review` over the change; act on the findings.
+6. **Verify with evidence** — the basic test checklist below, with the actual command output shown, not asserted.
+7. **Playtest** — Claude writes a checklist from the acceptance criteria; you play it.
+8. **Bug fixes** — `systematic-debugging` first, then a **failing test before the fix**, then `/code-review` again. A wrong *requirement* goes back to step 1, not patched as a fix.
+9. **PR → merge** — on your explicit go-ahead. Tracker updates ride along in the same PR.
+
+Every change links to at least an Epic in the WBS — process, tooling and docs work included (Epic 12, `PROC`). Save specs in the `specs/` folder. `specs/scoreboard.md` is a worked example; `specs/alpha-scope.md` defines the Alpha slice as a whole.
 
 ### Basic test checklist (run at each feature's Test step)
 
 Testing strategy (from `CLAUDE.md`): unit tests cover **pure logic only** — movement/jump rules, score/bone math, resource (HP) math, collision math — not Phaser rendering or scene lifecycle. Feel (jump height, walk speed) is decided by manual playtesting, not tests.
 
 - [ ] Pure logic for the feature lives in a plain module (e.g. `src/physics/*.js`), not buried in a Phaser `create()`/`update()` callback.
-- [ ] A matching test file exists (e.g. `specs/<feature>.md` → `src/physics/<feature>.test.js`), with **one test per acceptance criterion** in the spec.
+- [ ] A matching test file exists (e.g. `specs/<feature>.md` → `src/physics/<feature>.test.js`), with **one test per acceptance criterion** in the spec — **written before the implementation and seen to fail** (see `CLAUDE.md` → Testing strategy → Test-first).
 - [ ] Edge cases covered: boundaries (0 HP, double-jump used up, bone count) and the "does nothing" cases (e.g. second air-jump blocked until landing).
 - [ ] `npm run lint` passes.
 - [ ] `npm run test` passes (all green).
@@ -139,7 +147,7 @@ re-scope this list. All items are WBS `[Beta]`.
 ### Meta UI, audio, scoreboard, polish
 - [ ] Full arcade **title screen** (`UI-1` fuller form) and **pause menu** (`UI-4`).
 - [ ] **Personality/ability animations** (`CHAR-6` snore loop, `CHAR-7` fart VFX/SFX, `CHAR-8` rush wobble/blur).
-- [ ] Set up the online backend (Supabase/Firebase project + highscores table) — mind `NFR-7` (anon/public keys only).
+- [ ] Set up the online backend (Supabase/Firebase project + highscores table) — mind `NFR-7`: anon/public keys only, never `service_role`, and the RLS policy is the real security control. **Decided: no key vault** — full policy in `specs/scoreboard.md` § 6 → Secrets & keys.
 - [ ] 📄 Build the **online scoreboard** from `specs/scoreboard.md` (`BOARD-1/2`).
 - [ ] Add **music + sound effects** (`AUDIO-1/2`: jump, high jump, fart, rush, stomp, hurt, pickups, snore, endings, boss, victory jingle).
 

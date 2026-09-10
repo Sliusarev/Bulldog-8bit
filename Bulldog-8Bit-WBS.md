@@ -344,7 +344,7 @@ merge. It does not need a spec or a technical design.
   `Bulldog-8Bit-WBS.md`, `Bulldog-8Bit-Checklist.md` and `Bulldog-8Bit-Roadmap.md`,
   kept current via the `update-checklist` skill. Most recently PR #13.
 
-- **PROC-4 — Test-first scope + single code-review path** 🔲 In progress
+- **PROC-4 — Test-first scope + single code-review path** ✅ Done
   As a developer, I want tests to be written *before* the code they cover for
   pure logic, so that a test can disagree with the implementation instead of
   agreeing with it by construction. Prompted by the observation that the suite
@@ -423,9 +423,9 @@ Carried-over assumptions from the redesign:
 **12 Epics, 70 features (65 active + 5 cut):** *(+1: CHAR-9, per-color sprite
 sheets; +5: the new PROC epic, which covers process/tooling/docs work so that
 every change can link to an Epic)*
-- ✅ 26 done or already satisfied (21 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3/5 — plus 5 NFRs met by existing config/process)
+- ✅ 27 done or already satisfied (22 built features — MOVE-1/2/3/7, CHAR-1/2/3/4, ENEMY-1/3/4, SCORE-1/8, STATE-1, UI-3, AUDIO-3, NFR-11, PROC-1/2/3/4/5 — plus 5 NFRs met by existing config/process)
 - 📝 2 spec'd but not yet built (the scoreboard pair, both `[Beta]`)
-- 🔲 37 backlog or in progress *(includes PROC-4)* *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
+- 🔲 36 backlog *(STATE-3's trigger is built, but it stays here until UI-5 replaces its placeholder screen)*
 - ❓ 0 open decisions (all resolved)
 - ✂️ 5 cut/superseded (kept visible for traceability, not counted as active): MOVE-5, CHAR-5, SCORE-2-OLD, SCORE-5, LEVEL-4
 
